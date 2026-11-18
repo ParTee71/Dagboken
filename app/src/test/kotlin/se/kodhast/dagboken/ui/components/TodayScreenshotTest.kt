@@ -19,6 +19,7 @@ import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.ui.components.AppCard
+import se.kodhast.ui.components.DateStrip
 import se.kodhast.ui.theme.Spacing
 
 /**

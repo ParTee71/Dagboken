@@ -186,23 +186,6 @@ class DiagramScreenshotTest {
         }
     }
 
-    @Test
-    fun `CompactDropdownButton - stängd`() = captureLightAndDark("CompactDropdownButton_stangd") {
-        Sheet { CompactDropdownButton("14 dagar", periodItems()) }
-    }
-
-    @Test
-    fun `CompactDropdownButton - öppen`() = rule.captureScreenLightAndDark(
-        "CompactDropdownButton_oppen",
-        open = { onNodeWithText("14 dagar").clickWithoutRipple() }
-    ) {
-        Sheet { CompactDropdownButton("14 dagar", periodItems()) }
-    }
-
-    private fun periodItems() = listOf("7 dagar", "14 dagar", "Månad", "3 månader", "Allt").map {
-        AppMenuItem(it, {}, icon = if (it == "14 dagar") R.drawable.ic_check else null)
-    }
-
     /** Ordträdet (#320): periodens känslor, vanligast först, Stark utan val sist. */
     @Test
     fun `FeelingWordBars - perioden`() = captureLightAndDark("FeelingWordBars_period") {

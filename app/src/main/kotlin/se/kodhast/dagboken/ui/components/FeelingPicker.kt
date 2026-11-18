@@ -60,6 +60,7 @@ import se.kodhast.ui.components.LongPressSemantics
 import se.kodhast.ui.components.TOUCH_TARGET
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.components.longPress
+import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.ToneColors
 
@@ -301,7 +302,7 @@ private fun Details(core: String, nuance: String, selected: List<Feeling>, extra
                     core,
                     feeling != null,
                     enabled = true,
-                    shape = AppShapes.pill,
+                    shape = AppTheme.shapes.pill,
                     outermost = feeling,
                     extras = extras,
                     modifier = Modifier.heightIn(min = TOUCH_TARGET)

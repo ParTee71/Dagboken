@@ -20,6 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.components.AppBottomSheet
 import se.kodhast.ui.components.AppButton
+import se.kodhast.ui.components.StepNavigation
 
 /**
  * `AppBottomSheet` med ett formulär (NFR-10): med osparade ändringar ([dirty]) stänger varken svep ner, tryck
@@ -159,7 +160,7 @@ class AppBottomSheetTest {
             DagbokenTheme {
                 val steps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
                 LaunchedEffect(Unit) { steps.pager.scrollToPage(steps.steps.indexOf(ScreeningStep.SYMPTOMS)) }
-                AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepwiseScreeningNavigation(steps, { saved++ }) }) {
+                AppBottomSheet("Efter frukost", onDismiss = {}, footer = { StepNavigation(steps.pager, { saved++ }) }) {
                     StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, GALLERY_SCORES, {}, onSave = {}, state = steps, navigation = false)
                 }
             }

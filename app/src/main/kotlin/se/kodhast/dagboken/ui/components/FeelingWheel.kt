@@ -35,10 +35,10 @@ import se.kodhast.dagboken.core.model.FeelingStrength
 import se.kodhast.dagboken.ui.common.feelingName
 import se.kodhast.dagboken.ui.common.withStrength
 import se.kodhast.dagboken.ui.theme.AppColors
-import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.FeelingColors
 import se.kodhast.ui.components.TOUCH_TARGET
+import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
 
 /**
@@ -92,7 +92,7 @@ private fun BoxScope.SectorLabel(
         Modifier.align(Alignment.Center)
             .offset(offset.first, offset.second)
             .sizeIn(minWidth = TOUCH_TARGET, minHeight = TOUCH_TARGET)
-            .clip(AppShapes.pill)
+            .clip(AppTheme.shapes.pill)
             .clickable(role = Role.Button, onClick = onClick)
             .semantics {
                 contentDescription = description

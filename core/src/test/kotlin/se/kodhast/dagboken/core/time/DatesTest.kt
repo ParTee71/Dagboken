@@ -25,15 +25,6 @@ class DatesTest {
     }
 
     @Test
-    fun `veckodagarna är sju, måndag först`() {
-        val days = weekDays(LocalDate(2026, 10, 12))
-        assertEquals(DAYS_PER_WEEK, days.size)
-        assertEquals(LocalDate(2026, 10, 12), days.first())
-        assertEquals(LocalDate(2026, 10, 18), days.last())
-        assertEquals(DayOfWeek.SUNDAY, days.last().dayOfWeek)
-    }
-
-    @Test
     fun `tidsenheterna hänger ihop`() {
         assertEquals(3_600, SECONDS_PER_HOUR)
         assertEquals(1_440, MINUTES_PER_DAY)

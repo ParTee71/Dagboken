@@ -14,11 +14,11 @@ import se.kodhast.dagboken.core.model.Screening
 import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.components.FeelingExtras
 import se.kodhast.dagboken.ui.components.StepwiseScreeningForm
-import se.kodhast.dagboken.ui.components.StepwiseScreeningNavigation
 import se.kodhast.dagboken.ui.components.rememberStepwiseScreeningState
 import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.EditorSheetState
 import se.kodhast.ui.components.AppBottomSheet
+import se.kodhast.ui.components.StepNavigation
 import se.kodhast.ui.components.blockInput
 
 /**
@@ -51,7 +51,7 @@ fun ScreeningSheetView(sheet: EditorSheetState<Screening, ScreeningSheetInfo>, s
         dirty = unsaved,
         canDismiss = sheet::canDismiss,
         hide = hiding,
-        footer = { StepwiseScreeningNavigation(steps, { onEvent(LogEvent.SaveScreening) }, state.canSave, state.saving, done = closing, doneAnnouncement = savedText) }
+        footer = { StepNavigation(steps.pager, { onEvent(LogEvent.SaveScreening) }, saveEnabled = state.canSave, saving = state.saving, done = closing, doneAnnouncement = savedText) }
     ) {
         StepwiseScreeningForm(
             modifier = Modifier.blockInput(closing),

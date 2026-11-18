@@ -457,7 +457,7 @@ fun PrescriptionEditScreen(
 private fun SlotsSection(p: Prescription, slotsError: String?, onEvent: (PrescriptionEditEvent) -> Unit) {
     val label = stringResource(R.string.prescription_slots)
     if (p.hasUnknownSlots) {
-        LabeledGroup(label) { CannotShow(stringResource(R.string.prescription_slots_unknown)) }
+        LabeledGroup(label, helper = stringResource(R.string.prescription_slots_unknown)) {}
         return
     }
     LabeledGroup(label, helper = stringResource(R.string.prescription_slots_help), error = slotsError) {
@@ -469,20 +469,13 @@ private fun SlotsSection(p: Prescription, slotsError: String?, onEvent: (Prescri
     }
 }
 
-/** Ett värde formuläret inte kan visa eller ändra – det sparas som det är (DAT-10). */
-@Composable
-private fun CannotShow(text: String) {
-    // Samma indrag som gruppens hjälptext.
-    Text(text, Modifier.padding(horizontal = Spacing.l), style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant)
-}
-
 /** REC-2…REC-4: Varje dag · Veckodagar · Var X:e dag; en okänd upprepning visas bara som text. */
 @Composable
 private fun RepeatSection(p: Prescription, daysError: String?, onEvent: (PrescriptionEditEvent) -> Unit) {
     val label = stringResource(R.string.prescription_repeat)
     val schedule = p.schedule
     if (schedule !is Schedule.Repeating) {
-        LabeledGroup(label) { CannotShow(stringResource(R.string.prescription_repeat_unknown)) }
+        LabeledGroup(label, helper = stringResource(R.string.prescription_repeat_unknown)) {}
         return
     }
     val choice = schedule.choice()

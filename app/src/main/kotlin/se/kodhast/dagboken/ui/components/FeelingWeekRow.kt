@@ -13,12 +13,14 @@ import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.engine.FeelingDay
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind
 import se.kodhast.dagboken.ui.common.feelingSentence
-import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.ui.common.DateFormat
+import se.kodhast.ui.components.DayTab
+import se.kodhast.ui.components.DayTabWeekday
+import se.kodhast.ui.theme.AppTheme
 
 /**
  * Känslornas vecka (TRD-22): ett [FeelingMiniWheel] ([FeelingWheelSize.DAY]) per dag i [days] med veckodagen under, i
- * jämnbreda kolumner. Varje kolumn är en flik som [DateStrip]s dagar – minst 48 dp hög, `AppShapes.smallTile` – som
+ * jämnbreda kolumner. Varje kolumn är en flik som `DateStrip`s dagar – minst 48 dp hög, `AppTheme.shapes.smallTile` – som
  * TalkBack läser med datum och dagens mening ("tisdag 6 oktober: Mest glad och lugn.") och som vald för [selected] (ringen
  * runt hjulet; fliken läser valet själv). Tryck ger dagen till [onSelect]; anroparen äger valet.
  */
@@ -36,7 +38,7 @@ private fun WeekDay(day: FeelingDay, selected: Boolean, modifier: Modifier = Mod
     DayTab(
         selected = selected,
         onClick = onClick,
-        shape = AppShapes.smallTile,
+        shape = AppTheme.shapes.smallTile,
         modifier = modifier,
         inner = Modifier.clearAndSetSemantics { contentDescription = spoken }
     ) {

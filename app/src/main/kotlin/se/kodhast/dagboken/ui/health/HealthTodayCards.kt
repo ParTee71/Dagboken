@@ -13,13 +13,16 @@ import se.kodhast.dagboken.data.health.HealthStatus
 import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.diagram.SparklineChart
 import se.kodhast.dagboken.ui.theme.AppTypography
+import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.components.AppButton
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.SectionFoldout
-import se.kodhast.ui.components.StatPill
+import se.kodhast.ui.components.StatPillGrid
+import se.kodhast.ui.components.StatPillItem
 import se.kodhast.ui.theme.Spacing
+import se.kodhast.ui.theme.Tone
 
 /**
  * Hälsokortet på Idag (HEM-15, HLS-7): steg och vilopuls för den visade dagen som `StatPill` – "—" när dagen saknar
@@ -32,11 +35,12 @@ fun HealthTodayCard(state: HealthTodayUiState, onEvent: (HealthEvent) -> Unit, e
     AppCard {
         SectionFoldout(stringResource(R.string.today_health_title), expanded, onToggle, icon = R.drawable.ic_watch) {
             if (state.status == HealthStatus.AVAILABLE) {
-                PillRows(
+                StatPillGrid(
                     listOf(
-                        Metric(R.drawable.ic_steps, metricValue(WatchMetric.STEPS, state.day), stringResource(WatchMetric.STEPS.label())),
-                        Metric(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, state.day), stringResource(WatchMetric.RESTING_HEART_RATE.label()))
-                    )
+                        StatPillItem(R.drawable.ic_steps, metricValue(WatchMetric.STEPS, state.day), stringResource(WatchMetric.STEPS.label())),
+                        StatPillItem(R.drawable.ic_heart, metricValue(WatchMetric.RESTING_HEART_RATE, state.day), stringResource(WatchMetric.RESTING_HEART_RATE.label()))
+                    ),
+                    Tone.Neutral
                 )
             } else {
                 Text(stringResource(R.string.today_health_connect), style = AppTypography.body, color = MaterialTheme.colorScheme.onSurfaceVariant)

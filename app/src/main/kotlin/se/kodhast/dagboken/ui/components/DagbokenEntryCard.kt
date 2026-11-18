@@ -8,29 +8,19 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
-import kotlinx.coroutines.launch
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.model.Feeling
-import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppDivider
 import se.kodhast.ui.components.AppIconButton
@@ -38,19 +28,18 @@ import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.AppMenuPopup
 import se.kodhast.ui.components.DeleteAction
 import se.kodhast.ui.components.DeleteConfirmDialog
+import se.kodhast.ui.components.ExpandButton
 import se.kodhast.ui.components.ExpandableContent
 import se.kodhast.ui.components.FavoriteMark
 import se.kodhast.ui.components.FavoriteStar
 import se.kodhast.ui.components.ItemRowText
 import se.kodhast.ui.components.NoteIndicator
-import se.kodhast.ui.components.SwipeBackground
+import se.kodhast.ui.components.SwipeToDelete
 import se.kodhast.ui.components.SwitchControl
 import se.kodhast.ui.components.accentBar
-import se.kodhast.ui.components.chevronRotation
-import se.kodhast.ui.components.expandLabels
 import se.kodhast.ui.components.inactive
+import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
-import se.kodhast.ui.theme.ToneColors
 
 /**
  * Postkortet (NFR-15, NFR-16) – kortet för en sparad post: dos, aktivitet, mående, händelse,
@@ -174,7 +163,7 @@ private fun EntryCardBody(
 ) {
     Box(
         modifier
-            .clip(AppShapes.card)
+            .clip(AppTheme.shapes.card)
             .combinedClickable(
                 onClickLabel = stringResource(R.string.open),
                 onLongClickLabel = stringResource(R.string.more_options).takeIf { menu.isNotEmpty() },
@@ -207,7 +196,7 @@ private fun EntryCardBody(
                 toggle?.let { SwitchControl(it.checked, it.onCheckedChange, label = it.label) }
                 status?.invoke()
                 NoteIndicator(note, title)
-                if (expandedContent != null) ExpandButton(expanded) { expanded = !expanded }
+                if (expandedContent != null) ExpandButton(expanded, { expanded = !expanded })
                 if (menu.isNotEmpty()) {
                     Box {
                         AppIconButton(R.drawable.ic_more_vert, stringResource(R.string.more_options), { onMenuOpenChange(true) })
@@ -229,48 +218,4 @@ private fun EntryCardBody(
         // kortets yta ritas efter modifieraren – därför ett lager ovanpå kortet, i dess vänsterkant.
         if (accent != null) Box(Modifier.matchParentSize().accentBar(accent))
     }
-}
-
-/** Postkortets chevron-knapp (NFR-16): samma etikett som [Foldout]s titelrad, läget som `stateDescription`. */
-@Composable
-private fun ExpandButton(expanded: Boolean, onToggle: () -> Unit) {
-    val labels = expandLabels(expanded)
-    AppIconButton(
-        R.drawable.ic_expand_more,
-        labels.action,
-        onToggle,
-        Modifier.rotate(chevronRotation(expanded)).semantics { stateDescription = labels.state }
-    )
-}
-
-/**
- * Svep från höger till vänster begär radering ([onRequest]); kortet fjädrar genast tillbaka och
- * ligger kvar tills bekräftelsen svarat (NFR-15). Svep åt höger är avstängt.
- */
-@Composable
-private fun SwipeToDelete(onRequest: () -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val state = rememberSwipeToDismissBoxState()
-    val scope = rememberCoroutineScope()
-    SwipeToDismissBox(
-        state = state,
-        backgroundContent = {
-            // Bara en bild av svepet; åtgärden finns för TalkBack som menyns Radera.
-            SwipeBackground(
-                stringResource(R.string.delete),
-                R.drawable.ic_delete,
-                Modifier.clearAndSetSemantics {},
-                colors = ToneColors(MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer),
-                shape = AppShapes.card
-            )
-        },
-        modifier = modifier,
-        enableDismissFromStartToEnd = false,
-        onDismiss = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onRequest()
-                scope.launch { state.reset() }
-            }
-        },
-        content = { content() }
-    )
 }

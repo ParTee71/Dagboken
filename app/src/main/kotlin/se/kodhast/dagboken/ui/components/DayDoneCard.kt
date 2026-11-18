@@ -2,31 +2,25 @@ package se.kodhast.dagboken.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import java.util.Locale
 import kotlin.math.abs
 import se.kodhast.dagboken.R
-import se.kodhast.dagboken.ui.theme.AppColors
-import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.Positive
-import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.Confetti
-import se.kodhast.ui.components.SectionHeader
-import se.kodhast.ui.components.StatPill
+import se.kodhast.ui.components.KeyFigure
+import se.kodhast.ui.components.SectionCard
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 
 /**
  * Dagen klar (belöningsläget, HEM-19, DSN-4): ett grönt kort med rubriken "Allt klart för idag" – en
- * [SectionHeader] med bock i grön ton – och tre nyckeltal: dagens snittenergi ([averageEnergy]), skillnaden mot igår ([versusYesterday], med tecken)
+ * rubrik med bock i grön ton – och tre nyckeltal: dagens snittenergi ([averageEnergy]), skillnaden mot igår ([versusYesterday], med tecken)
  * och dagar i rad ([streakDays]). Saknas underlag (`null`) står "—" (`R.string.value_missing`, samma som `StatPill`). Över kortet faller [Confetti] när
  * [play] blir sant; [onConfettiFinished] säger till när regnet är över, så att anroparen (som äger
  * "en gång per dag") kan slå av [play]. Kortet räknar inget självt – värdena kommer från `:core`.
@@ -42,24 +36,14 @@ fun DayDoneCard(
 ) {
     val missing = stringResource(R.string.value_missing)
     Box(modifier) {
-        AppCard(tone = Tone.Positive, contentColor = MaterialTheme.colorScheme.onSurface) {
-            SectionHeader(stringResource(R.string.day_done_title), icon = R.drawable.ic_check, tone = Tone.Positive)
+        SectionCard(stringResource(R.string.day_done_title), icon = R.drawable.ic_check, tone = Tone.Positive, contentColor = MaterialTheme.colorScheme.onSurface) {
             Row(Modifier.semantics(mergeDescendants = true) {}, horizontalArrangement = Arrangement.spacedBy(Spacing.l)) {
-                KeyFigure(averageEnergy?.let(::decimal) ?: missing, stringResource(R.string.day_done_average_energy), Modifier.weight(1f))
-                KeyFigure(versusYesterday?.let(::signedDecimal) ?: missing, stringResource(R.string.day_done_vs_yesterday), Modifier.weight(1f))
-                KeyFigure(streakDays?.toString() ?: missing, stringResource(R.string.day_done_streak), Modifier.weight(1f))
+                KeyFigure(averageEnergy?.let(::decimal) ?: missing, stringResource(R.string.day_done_average_energy), Modifier.weight(1f), Tone.Positive)
+                KeyFigure(versusYesterday?.let(::signedDecimal) ?: missing, stringResource(R.string.day_done_vs_yesterday), Modifier.weight(1f), Tone.Positive)
+                KeyFigure(streakDays?.toString() ?: missing, stringResource(R.string.day_done_streak), Modifier.weight(1f), Tone.Positive)
             }
         }
         Confetti(Modifier.matchParentSize(), play = play, onFinished = onConfettiFinished)
-    }
-}
-
-@Composable
-private fun KeyFigure(value: String, label: String, modifier: Modifier = Modifier) {
-    val colors = AppColors.tone(Tone.Positive)
-    Column(modifier) {
-        Text(value, style = AppTypography.bigNumber, color = colors.content, maxLines = 1)
-        Text(label, style = AppTypography.itemSubtitle, color = colors.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 

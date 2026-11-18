@@ -68,7 +68,6 @@ import se.kodhast.dagboken.ui.common.feelingSentence
 import se.kodhast.dagboken.ui.common.scaleLevel
 import se.kodhast.dagboken.ui.diagram.ChartBand
 import se.kodhast.dagboken.ui.diagram.ChartSeries
-import se.kodhast.dagboken.ui.diagram.CompactDropdownButton
 import se.kodhast.dagboken.ui.diagram.FeelingWordBars
 import se.kodhast.dagboken.ui.diagram.IntervalBarChart
 import se.kodhast.dagboken.ui.diagram.LineChart
@@ -120,6 +119,7 @@ import se.kodhast.ui.components.DateField
 import se.kodhast.ui.components.DateTimeRow
 import se.kodhast.ui.components.DeleteAction
 import se.kodhast.ui.components.DetailHeader
+import se.kodhast.ui.components.DropdownPill
 import se.kodhast.ui.components.DurationRow
 import se.kodhast.ui.components.EmptyContent
 import se.kodhast.ui.components.EmptyExample
@@ -261,13 +261,6 @@ private fun Diary() {
             GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {}
         )
     }
-    Label("StepwiseScreeningNavigation – sista steget, och klart-läge (NFR-21)")
-    val navSteps = rememberStepwiseScreeningState(GALLERY_SYMPTOMS)
-    LaunchedEffect(Unit) { navSteps.pager.scrollToPage(navSteps.steps.lastIndex) }
-    AppCard {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { StepwiseScreeningNavigation(navSteps, {}) }
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { StepwiseScreeningNavigation(navSteps, {}, done = true) }
-    }
     Label("FeelingWheel")
     var wheel by remember { mutableStateOf(setOf("calm")) }
     FeelingWheel(wheel, { core -> wheel = if (core in wheel) wheel - core else wheel + core })
@@ -397,20 +390,8 @@ internal object GalleryFeelings {
 @Composable
 private fun Today() {
     val today = LocalDate(2026, 10, 5)
-    var week by remember { mutableStateOf(today) }
-    var day by remember { mutableStateOf(today) }
     var done by remember { mutableIntStateOf(4) }
     var celebrate by remember { mutableStateOf(false) }
-    Label("DateStrip")
-    DateStrip(
-        week,
-        day,
-        { day = it },
-        { week = it },
-        today = today,
-        datesWithEntries = setOf(LocalDate(2026, 9, 28), LocalDate(2026, 9, 30), LocalDate(2026, 10, 1), LocalDate(2026, 10, 3), today),
-        todayDone = done == GALLERY_TOTAL
-    )
     Label("ProgressBar")
     ProgressBar(done, GALLERY_TOTAL)
     ProgressBar(GALLERY_TOTAL, GALLERY_TOTAL, celebrate = false)
@@ -451,13 +432,14 @@ private fun Diagrams() {
     val periods = listOf("7 dagar", "14 dagar", "Månad", "3 månader", "Allt")
     var period by remember { mutableIntStateOf(1) }
     var withPrevious by remember { mutableStateOf(false) }
-    Label("CompactDropdownButton · LineChart")
+    Label("LineChart")
     AppCard {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text("Energi per dag", style = AppTypography.sectionTitle)
-            CompactDropdownButton(
+            DropdownPill(
                 periods[period],
-                periods.mapIndexed { i, name -> AppMenuItem(name, { period = i }, icon = if (i == period) R.drawable.ic_check else null) }
+                periods.mapIndexed { i, name -> AppMenuItem(name, { period = i }, icon = if (i == period) R.drawable.ic_check else null) },
+                tone = Tone.Neutral
             )
         }
         LineChart(

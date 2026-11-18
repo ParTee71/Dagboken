@@ -1,15 +1,9 @@
 package se.kodhast.dagboken.ui.components
 
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
@@ -19,31 +13,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.semantics.text
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.model.Feeling
 import se.kodhast.dagboken.core.model.Option
 import se.kodhast.dagboken.core.model.SymptomScore
 import se.kodhast.dagboken.core.model.somatic
-import se.kodhast.dagboken.ui.theme.AppColors
-import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
-import se.kodhast.dagboken.ui.theme.TRACK_HEIGHT
-import se.kodhast.ui.components.AppButton
-import se.kodhast.ui.components.ButtonVariant
+import se.kodhast.ui.components.StepIndicator
+import se.kodhast.ui.components.StepNavigation
 import se.kodhast.ui.theme.Spacing
 
 /**
@@ -54,7 +35,7 @@ import se.kodhast.ui.theme.Spacing
  * högre är bättre, stress: högre är sämre), känslorna [FeelingPicker] (inget val är ett giltigt svar) och symptomen
  * [SymptomLogCard]. Stegen går också att svepa mellan.
  *
- * [navigation] = false: knapparna ritas inte här utan av [StepwiseScreeningNavigation] med samma [state] – i
+ * [navigation] = false: knapparna ritas inte här utan av `StepNavigation` med samma [state]`.pager` – i
  * arkets fasta knapprad (`AppBottomSheet(footer)`, NFR-21), så att de syns också när symptomen är utfällda.
  */
 @Composable
@@ -97,10 +78,10 @@ fun StepwiseScreeningForm(
                 null -> Unit
             }
         }
-        StepDots(steps.size, pager.currentPage)
+        StepIndicator(steps.size, pager.currentPage)
         if (navigation) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                StepwiseScreeningNavigation(state, onSave, saveEnabled, saving)
+                StepNavigation(pager, onSave, saveEnabled = saveEnabled, saving = saving)
             }
         }
     }
@@ -129,61 +110,3 @@ internal fun rememberStepwiseScreeningState(symptomOptions: List<Option>): Stepw
     val pager = rememberPagerState(pageCount = { steps.size })
     return remember(pager) { StepwiseScreeningState(pager) { steps } }
 }
-
-/**
- * Föregående/Nästa – och Spara på sista steget – för [StepwiseScreeningForm], t.ex. i `AppBottomSheet(footer)`.
- * [done] = klart-läget (NFR-21): Spara byts mot en fylld knapp med bock och [doneText], Föregående är nedtonad, och
- * [doneAnnouncement] läses upp av skärmläsare (live region). Default `false` = vanliga knappraden.
- */
-@Composable
-internal fun RowScope.StepwiseScreeningNavigation(
-    state: StepwiseScreeningState,
-    onSave: () -> Unit,
-    saveEnabled: Boolean = true,
-    saving: Boolean = false,
-    done: Boolean = false,
-    doneText: String = stringResource(R.string.saved),
-    doneAnnouncement: String = doneText
-) {
-    val pager = state.pager
-    val scope = rememberCoroutineScope()
-    val go = { page: Int ->
-        scope.launch { pager.animateScrollToPage(page) }
-        Unit
-    }
-    if (pager.currentPage > 0) AppButton(stringResource(R.string.previous), { go(pager.currentPage - 1) }, variant = ButtonVariant.Text, enabled = !done)
-    Spacer(Modifier.weight(1f))
-    // En och samma live region över lägena: i klart-läget bär den "Sparat" (text) och bekräftelsen (stateDescription),
-    // och knappen under är ren status – ingen knapp för skärmläsare.
-    Box(
-        Modifier.semantics {
-            liveRegion = LiveRegionMode.Polite
-            if (done) {
-                text = AnnotatedString(doneText)
-                stateDescription = doneAnnouncement
-            }
-        }
-    ) {
-        if (done) {
-            AppButton(doneText, {}, Modifier.clearAndSetSemantics {}, icon = R.drawable.ic_check)
-        } else if (pager.currentPage < state.steps.lastIndex) {
-            AppButton(stringResource(R.string.next), { go(pager.currentPage + 1) }, variant = ButtonVariant.Secondary)
-        } else {
-            AppButton(stringResource(R.string.save), onSave, enabled = saveEnabled, loading = saving)
-        }
-    }
-}
-
-/** Stegprickarna: den aktuella fjädrar ut till ett streck (DSN-4); läses inte – texten ovanför säger samma sak. */
-@Composable
-private fun StepDots(count: Int, current: Int) {
-    Row(Modifier.fillMaxWidth().clearAndSetSemantics {}, horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterHorizontally)) {
-        repeat(count) { index ->
-            val active = index == current
-            val width by animateDpAsState(if (active) DOT_ACTIVE else TRACK_HEIGHT, MaterialTheme.motionScheme.fastSpatialSpec(), label = "stegprick")
-            Box(Modifier.size(width, TRACK_HEIGHT).background(if (active) MaterialTheme.colorScheme.primary else AppColors.extended.track, AppShapes.pill))
-        }
-    }
-}
-
-private val DOT_ACTIVE = 20.dp

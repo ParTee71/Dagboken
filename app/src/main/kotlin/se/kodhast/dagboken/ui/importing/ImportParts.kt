@@ -20,13 +20,12 @@ import androidx.compose.ui.semantics.contentDescription
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.ui.components.ProgressBar
 import se.kodhast.dagboken.ui.theme.AppTypography
-import se.kodhast.dagboken.ui.theme.IconSize
 import se.kodhast.dagboken.ui.theme.Positive
-import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppDivider
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.NoticeBanner
-import se.kodhast.ui.components.SectionHeader
+import se.kodhast.ui.components.SectionCard
+import se.kodhast.ui.theme.IconSize
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 
@@ -44,8 +43,7 @@ internal fun StatusCard(
     countTone: Tone = Tone.Primary,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    AppCard {
-        SectionHeader(title, icon = icon, count = count, countTone = countTone)
+    SectionCard(title, icon = icon, count = count, countTone = countTone) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.s), content = content)
     }
 }

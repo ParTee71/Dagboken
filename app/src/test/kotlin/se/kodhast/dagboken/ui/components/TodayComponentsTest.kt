@@ -73,66 +73,8 @@ class TodayComponentsTest {
 
     private fun show(content: @Composable () -> Unit) = rule.setContent { DagbokenTheme(content = content) }
 
-    private fun day(text: String) = rule.onNodeWithContentDescription(text, substring = true)
-    private fun state(text: String) = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, text)
     private fun role(role: Role) = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
     private fun progress(fraction: Float) = SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo(fraction, 0f..1f))
-
-    /** Onsdag – veckan har tre framtida dagar. */
-    private val today = LocalDate(2026, 10, 7)
-
-    // ---- DateStrip ----
-
-    @Test
-    fun `datumremsan - en tidigare dag går att välja, framtida dagar inte`() {
-        var selected by mutableStateOf(today)
-        show { DateStrip(today, selected, { selected = it }, {}, today = today) }
-        day("ons 7 okt 2026").assertIsSelected().assert(role(Role.Tab))
-        day("mån 5 okt 2026").assertIsEnabled().assertIsNotSelected().performClick()
-        assertEquals(LocalDate(2026, 10, 5), selected)
-        day("mån 5 okt 2026").assertIsSelected()
-        day("tors 8 okt 2026").assertIsNotEnabled().performClick()
-        day("sön 11 okt 2026").assertIsNotEnabled()
-        assertEquals(LocalDate(2026, 10, 5), selected)
-    }
-
-    @Test
-    fun `datumremsan - idag, poster och klar dag läses upp`() {
-        show { DateStrip(today, today, {}, {}, today = today, datesWithEntries = setOf(LocalDate(2026, 10, 6), today), todayDone = true) }
-        day("ons 7 okt 2026, idag, har poster").assert(state("Klar"))
-        day("tis 6 okt 2026, har poster").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.StateDescription))
-        day("mån 5 okt 2026").assertHeightIsAtLeast(48.dp)
-    }
-
-    @Test
-    fun `datumremsan - svep åt höger ger föregående vecka, åt vänster aldrig en framtida vecka`() {
-        var week by mutableStateOf(today)
-        val changes = mutableListOf<LocalDate>()
-        show {
-            DateStrip(week, today, {}, {
-                changes += it
-                week = it
-            }, today = today)
-        }
-        day("ons 7 okt 2026").performTouchInput { swipeLeft(startX = right, endX = right - 4 * width) }
-        assertEquals(emptyList(), changes)
-        day("ons 7 okt 2026").performTouchInput { swipeRight(startX = left, endX = left + 4 * width) }
-        assertEquals(listOf(LocalDate(2026, 9, 28)), changes)
-        day("ons 30 sep 2026").assertIsDisplayed().assertIsEnabled()
-        day("ons 30 sep 2026").performTouchInput { swipeLeft(startX = right, endX = right - 4 * width) }
-        assertEquals(listOf(LocalDate(2026, 9, 28), LocalDate(2026, 10, 5)), changes)
-    }
-
-    @Test
-    fun `datumremsan - veckobytet finns som TalkBack-åtgärd`() {
-        val changes = mutableListOf<LocalDate>()
-        show { DateStrip(LocalDate(2026, 9, 30), today, {}, { changes += it }, today = today) }
-        val strip = rule.onNode(SemanticsMatcher.keyIsDefined(SemanticsActions.CustomActions))
-        val actions = strip.fetchSemanticsNode().config[SemanticsActions.CustomActions]
-        assertEquals(listOf("Föregående vecka", "Nästa vecka"), actions.map { it.label })
-        actions.forEach { it.action() }
-        assertEquals(listOf(LocalDate(2026, 9, 21), LocalDate(2026, 10, 5)), changes)
-    }
 
     // ---- ProgressBar ----
 

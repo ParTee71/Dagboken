@@ -34,9 +34,9 @@ import se.kodhast.dagboken.core.engine.CoreCount
 import se.kodhast.dagboken.core.engine.FeelingTally
 import se.kodhast.dagboken.ui.common.feelingName
 import se.kodhast.dagboken.ui.theme.AppColors
-import se.kodhast.dagboken.ui.theme.AppShapes
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.RING_WIDTH
+import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.ToneColors
 
@@ -109,7 +109,7 @@ private fun BoxScope.SectorWords(count: CoreCount, tone: ToneColors, offset: Pai
         Modifier.align(Alignment.Center)
             .offset(offset.first, offset.second)
             .widthIn(max = maxWidth)
-            .clip(AppShapes.smallTile)
+            .clip(AppTheme.shapes.smallTile)
             .background(tone.container)
             .padding(horizontal = Spacing.s, vertical = Spacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally
