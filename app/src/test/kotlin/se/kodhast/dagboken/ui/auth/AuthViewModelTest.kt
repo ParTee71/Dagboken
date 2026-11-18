@@ -17,6 +17,7 @@ import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.testing.MainDispatcherRule
 import se.kodhast.dagboken.testing.UserFixture
+import se.kodhast.ui.common.AuthGate
 
 /**
  * Robolectric bara för att kunna skicka en `Context` i händelsen; allt annat är fakes. Köad
@@ -108,7 +109,7 @@ class AuthViewModelTest {
         val (_, vm) = viewModel(fixture)
 
         val failed = vm.state.first { it.error != null }
-        assertEquals(AuthGate.NeedsUser, failed.gate)
+        assertEquals(AuthGate.NeedsAccount, failed.gate)
         assertEquals(DataError.Offline, failed.error)
 
         fixture.directory.failure = null
@@ -164,7 +165,7 @@ class AuthViewModelTest {
         fixture.auth.authState.value = AuthUser("uid-anna")
         val (_, vm) = viewModel(fixture)
 
-        assertEquals(AuthGate.NeedsUser, vm.awaitGate(AuthGate.NeedsUser).gate)
+        assertEquals(AuthGate.NeedsAccount, vm.awaitGate(AuthGate.NeedsAccount).gate)
         vm.onEvent(AuthEvent.SignIn(context))
         assertEquals(DataError.PermissionDenied, vm.state.first { it.error != null }.error)
     }
@@ -180,7 +181,7 @@ class AuthViewModelTest {
 
         fixture.auth.signOut()
         fixture.auth.authState.value = AuthUser("uid-erik")
-        vm.state.first { it.gate == AuthGate.NeedsUser }
+        vm.state.first { it.gate == AuthGate.NeedsAccount }
         hold.complete(Unit)
 
         assertEquals(AuthUiState(AuthGate.Ready, account = AuthUser("uid-erik")), vm.awaitGate(AuthGate.Ready))

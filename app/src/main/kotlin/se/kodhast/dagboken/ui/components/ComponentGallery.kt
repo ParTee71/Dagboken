@@ -65,6 +65,7 @@ import se.kodhast.dagboken.core.engine.IntervalPoint
 import se.kodhast.dagboken.core.engine.StackedPoint
 import se.kodhast.dagboken.core.engine.TrendDirection
 import se.kodhast.dagboken.data.common.DataError
+import se.kodhast.ui.common.AuthGate
 import se.kodhast.ui.common.DetailUiState
 import se.kodhast.ui.common.EditorEvents
 import se.kodhast.ui.common.EditorUiState
@@ -106,6 +107,7 @@ import se.kodhast.ui.components.AppFilterChip
 import se.kodhast.ui.components.AppFloatingToolbar
 import se.kodhast.ui.components.AppIconButton
 import se.kodhast.ui.components.AppLoading
+import se.kodhast.ui.components.AuthGateHost
 import se.kodhast.ui.components.MakerMark
 import se.kodhast.ui.components.AppMenu
 import se.kodhast.ui.components.AppMenuItem
@@ -813,6 +815,8 @@ internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("sca
 private fun Progress() {
     Box(Modifier.fillMaxWidth().height(96.dp)) { AppLoading() }
     MakerMark()
+    Label("AuthGateHost – inloggningen kontrolleras")
+    Box(Modifier.fillMaxWidth().height(96.dp)) { AuthGateHost(AuthGate.Loading, signIn = {}, updateRequired = {}) {} }
     var tab by remember { mutableIntStateOf(0) }
     AppFloatingToolbar(
         items = listOf(

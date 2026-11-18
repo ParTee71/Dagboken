@@ -27,14 +27,13 @@ import se.kodhast.dagboken.data.common.UserScope
 import se.kodhast.dagboken.data.common.UserVersion
 import se.kodhast.dagboken.data.common.dataError
 import se.kodhast.dagboken.data.user.EnsureUserUseCase
+import se.kodhast.ui.common.AuthGate
 import se.kodhast.ui.common.screenSharing
 
 /**
- * Vad appen visar (AUTH-1, AUTH-6): inloggning, "Uppdatera appen" eller innehållet.
- * [NeedsUser] = inloggad men `users/{uid}` finns inte (än) på servern eller går inte att läsa.
+ * Vad appen visar (AUTH-1, AUTH-6) ligger i [gate] (android-ui:s [AuthGate]); [AuthGate.NeedsAccount] =
+ * inloggad men `users/{uid}` finns inte (än) på servern eller går inte att läsa.
  */
-enum class AuthGate { Loading, SignedOut, NeedsUser, UpdateRequired, Ready }
-
 @Immutable
 data class AuthUiState(
     val gate: AuthGate = AuthGate.Loading,
@@ -155,12 +154,12 @@ class AuthViewModel @Inject constructor(
             user == null -> AuthGate.SignedOut
 
             // Rules nekar läsningen: inloggningsskärmen visar felet och knappen försöker igen.
-            unreadable == user.uid -> AuthGate.NeedsUser
+            unreadable == user.uid -> AuthGate.NeedsAccount
 
             // Versionen avgör om appen får visas – vänta på den i stället för att blinka förbi.
             version?.uid != user.uid -> AuthGate.Loading
 
-            !version.exists -> AuthGate.NeedsUser
+            !version.exists -> AuthGate.NeedsAccount
 
             Schema.isNewerThanApp(version.version) -> AuthGate.UpdateRequired
 

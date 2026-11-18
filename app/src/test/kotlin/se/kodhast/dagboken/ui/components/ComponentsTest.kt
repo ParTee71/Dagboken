@@ -33,6 +33,7 @@ import se.kodhast.ui.components.AppSnackbarHost
 import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.EmptyState
 import se.kodhast.ui.components.MakerMark
+import se.kodhast.ui.components.R as UiR
 import se.kodhast.ui.theme.Spacing
 
 /** Beteende och skärmdumpar (ljust + mörkt) för de delade komponenterna. */
@@ -74,7 +75,7 @@ class ComponentsTest {
             Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).padding(Spacing.l),
             verticalArrangement = Arrangement.spacedBy(Spacing.m)
         ) {
-            AppButton("Logga in med Google", {}, Modifier.fillMaxWidth(), icon = R.drawable.ic_login)
+            AppButton("Logga in med Google", {}, Modifier.fillMaxWidth(), icon = UiR.drawable.ic_login)
             AppButton("Loggar in …", {}, Modifier.fillMaxWidth(), loading = true)
             AppButton("Lägg till", {}, variant = ButtonVariant.Secondary)
             AppButton("Avbryt", {}, variant = ButtonVariant.Text)

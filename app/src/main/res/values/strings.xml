@@ -4,15 +4,11 @@
 
     <!-- Inloggning (AUTH-1, AUTH-2, AUTH-4, AUTH-6) -->
     <string name="sign_in_welcome">Din hälsodagbok – mediciner, mående och aktiviteter på ett ställe</string>
-    <string name="sign_in_google">Logga in med Google</string>
-    <string name="sign_in_busy">Loggar in …</string>
     <string name="sign_in_note">Du loggar in med ditt Google-konto. Dagboken sparas i molnet och fungerar även utan nät.</string>
 
     <!-- Uppdatera appen (nyare dataformat än appen) -->
-    <string name="update_required_title">Uppdatera appen</string>
     <string name="update_required_message">Din dagbok har sparats med en nyare version av Dagboken. Installera den senaste versionen för att fortsätta.</string>
     <string name="update_required_note">Ingenting i din dagbok ändras förrän appen är uppdaterad.</string>
-    <string name="update_required_action">Hämta senaste versionen</string>
     <string name="releases_url" translatable="false">https://github.com/Kodhast/Dagboken/releases/latest</string>
 
     <!-- Felmeddelanden – enda stället (DataError.toMessage) -->

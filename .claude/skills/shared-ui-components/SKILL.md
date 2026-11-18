@@ -116,6 +116,7 @@ kolumn två. Komponenter som ännu inte är byggda står **bara** i *Planerade k
 | Arkivera/dölj listobjekt | `SwipeToHide` *(android-ui)* | Svep → dolt direkt → `UndoSnackbar` "%s arkiverad · Ångra" i 5 s; `enabled = false` för en redan arkiverad rad. Används för listobjekt som alternativen i Listor – **inte** för postkort: postkortets svep begär radering med `ConfirmDialog` (NFR-15, `DagbokenEntryCard`) |
 | Ångra | `UndoSnackbar` *(android-ui)* | Enda ångra-mekanismen; `onRequestDismissed` säger vilket ångra som gick ut, så att ett nyare inte släpps |
 | Permanent radering | `ConfirmDialog` *(android-ui)* | `destructive = true`; alltid bekräftelse – även efter svep på ett postkort, som fjädrar tillbaka tills dialogen svarat (NFR-15); en `DeleteAction` visas med det interna `DeleteConfirmDialog` (postkortet, `EntityEditScreen`, Idags doserad) |
+| Inloggning och appens rot | `AuthGateHost`, `SignInScreen`, `UpdateRequiredScreen` *(android-ui)* | Läget är `AuthGate` *(android-ui, ui-common)* ur `AuthViewModel`; `AppRootContent` ger skärmarna Dagbokens bok-ikon, texter och release-länk (AUTH-1, AUTH-4, AUTH-6, BCK-15); laddning → `AppLoading`, bakgrunden sätts en gång; galleriet visar ramen i laddningsläget (skärmarna är helskärmar och har egna skärmdumpar) |
 | Komponentöversikt | `ComponentGallery` | Debug-skärm med alla komponenter och ramar i alla tillstånd |
 
 Gemensamt för ramarna: felmeddelanden via `UiError` (mappat en gång av `AppErrors` i `ui/common/AppErrors.kt`, texten ur `DataError.toMessage()`), skärmbyten via
