@@ -15,6 +15,7 @@ import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.AppRootContent
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
+import se.kodhast.ui.common.AuthGate
 
 /** Skärmarna som inloggningen styr: beteende och skärmdumpar (ljust + mörkt). */
 @RunWith(RobolectricTestRunner::class)
@@ -69,7 +70,7 @@ class AuthScreensTest {
 
     @Test
     fun `inloggad men utan användardokument visar inloggningen igen`() {
-        rule.setContent { DagbokenTheme { AppRootContent(AuthUiState(AuthGate.NeedsUser), {}) } }
+        rule.setContent { DagbokenTheme { AppRootContent(AuthUiState(AuthGate.NeedsAccount), {}) } }
         rule.onNodeWithText("Logga in med Google").assertIsDisplayed()
     }
 
@@ -92,6 +93,11 @@ class AuthScreensTest {
         }) {
             AppRootContent(AuthUiState(AuthGate.SignedOut, error = DataError.Unknown), {})
         }
+    }
+
+    @Test
+    fun `AuthGateHost - laddning medan inloggningen kontrolleras`() = captureLightAndDark("AuthGateHost_laddning") {
+        AppRootContent(AuthUiState(AuthGate.Loading), {}) { error("innehållet ska inte visas under laddning") }
     }
 
     @Test

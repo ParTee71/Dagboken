@@ -21,9 +21,9 @@ import se.kodhast.dagboken.navigation.AppBackStack
 import se.kodhast.dagboken.navigation.AppNavHost
 import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.AppRootContent
-import se.kodhast.dagboken.ui.auth.AuthGate
 import se.kodhast.dagboken.ui.auth.AuthUiState
 import se.kodhast.dagboken.ui.components.UserAvatar
+import se.kodhast.ui.common.AuthGate
 import se.kodhast.ui.components.AppHeader
 import se.kodhast.ui.components.EmptyState
 import se.kodhast.ui.components.LocalBottomClearance

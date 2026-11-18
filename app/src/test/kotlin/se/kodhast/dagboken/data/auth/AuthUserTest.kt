@@ -3,8 +3,8 @@ package se.kodhast.dagboken.data.auth
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import org.junit.Test
-import se.kodhast.dagboken.ui.auth.AuthGate
 import se.kodhast.dagboken.ui.auth.AuthUiState
+import se.kodhast.ui.common.AuthGate
 
 /** AUTH-3, NFR-13: uid, namn, e-post och foto kan aldrig hamna i en logg via `toString`. */
 class AuthUserTest {

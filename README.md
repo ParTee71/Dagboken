@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.18.3 | Inloggningen från android-ui 1.13.0 (#441 del 3): `SignInScreen`, `UpdateRequiredScreen` och roten `AuthGateHost` kommer från biblioteket, och läget är bibliotekets `AuthGate` (`NeedsUser` heter `NeedsAccount`). `AuthViewModel` och Dagbokens texter stannar. Inget synligt ändrat. |
 | 4.18.2 | Navigationsramen från android-ui 1.12.0 (#441 del 2): `AppBackStack` är bibliotekets `TabBackStack`, skärmbytena `AppTransitions` och ramen `AppNavHost` (ui-navigation); Dagboken behåller flikarna och loggmenyn. `SyncViewModel` mappar en nekad skrivning till `UiError` en gång per fel. Inget synligt ändrat. |
 | 4.18.1 | Gemensamma verktyg från android-ui 1.11.0 (#441 del 1): `DateFormat`, `WriteFailures`, `screenSharing`, `rememberReducedMotion`, `blockInput` och `TOUCH_TARGET` – Dagbokens kopior borttagna. Hoppet från 1.8.0 tar också med 1.10.0:s sektionsrubrik, som bryts på högst två rader och kortas med "…" (hela titeln vid långt tryck) – syns bara vid mycket långa rubriker; inga skärmdumpar ändrade. |
 | 4.18.0 | **Kodhäst-sidfoten:** flikraden byter den mörka kapseln mot appens ljusa teal (NAV-8), och plusknappens fem loggval växer upp ur knappen som en meny i teal i stället för ett ark; knappen blir ett kryss och flikraden står kvar (NAV-10, #438). android-ui 1.7.0. |
