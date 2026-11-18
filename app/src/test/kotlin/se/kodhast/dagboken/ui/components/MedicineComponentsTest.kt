@@ -29,6 +29,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
+import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.common.ListUiState
 import se.kodhast.ui.components.AddAction
 import se.kodhast.ui.components.AppMenuItem
@@ -36,8 +37,10 @@ import se.kodhast.ui.components.EmptyContent
 import se.kodhast.ui.components.EntityListScreen
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ListGroup
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.QuantityStepper
 import se.kodhast.ui.components.inactive
+import se.kodhast.ui.theme.Tone
 
 /**
  * Det som Mediciner lade till i katalogen (#255): favoritstjärnan (andra användningen efter Listor),
@@ -161,7 +164,7 @@ class MedicineComponentsTest {
     @Test
     fun `NoticeBanner är en knapp som öppnar det meddelandet gäller`() {
         var opened = 0
-        show { NoticeBanner("Kåvepenin slutar i morgon.", se.kodhast.dagboken.R.drawable.ic_bell, { opened++ }) }
+        show { NoticeBanner("Kåvepenin slutar i morgon.", se.kodhast.dagboken.R.drawable.ic_bell, { opened++ }, tone = Tone.Warning) }
         rule.onNodeWithText("Kåvepenin slutar i morgon.")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
             .performClick()
@@ -170,7 +173,7 @@ class MedicineComponentsTest {
 
     @Test
     fun `NoticeBanner utan länk är bara ett meddelande med sin förklaring – ingen knapp`() {
-        show { NoticeBanner("Health Connect saknas", se.kodhast.dagboken.R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.") }
+        show { NoticeBanner("Health Connect saknas", se.kodhast.dagboken.R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.", tone = Tone.Warning) }
         rule.onNodeWithText("Health Connect saknas").assertIsDisplayed().assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))
         rule.onNodeWithText("Klockans data visas när Health Connect är kopplat.").assertIsDisplayed()
         rule.onNode(hasClickAction()).assertDoesNotExist()
@@ -185,7 +188,8 @@ class MedicineComponentsTest {
                 se.kodhast.dagboken.R.drawable.ic_watch,
                 { opened++ },
                 detail = "Installera Health Connect från Play Butik för att se klockans data.",
-                action = "Installera"
+                action = "Installera",
+                tone = Tone.Warning
             )
         }
         rule.onNodeWithText("Health Connect saknas").assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Role))

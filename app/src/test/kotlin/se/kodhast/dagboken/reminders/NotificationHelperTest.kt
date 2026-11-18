@@ -24,6 +24,7 @@ import se.kodhast.dagboken.core.model.Slot
 import se.kodhast.dagboken.reminders.ReminderIntents.date
 import se.kodhast.dagboken.reminders.ReminderIntents.slot
 import se.kodhast.dagboken.ui.moment.MomentActivity
+import se.kodhast.ui.components.canPostNotifications
 
 /**
  * Kanalerna och notiserna (NOT-1, NOT-3, NOT-9…NOT-12, NOT-17): privata på låsskärmen utan hälsoinnehåll i den
@@ -184,7 +185,7 @@ class NotificationHelperTest {
 
         assertEquals(0, posted().size)
         assertFalse(context.reminderAccess().notifications)
-        assertTrue(context.needsNotificationPermission())
+        assertFalse(context.canPostNotifications())
     }
 
     @Test

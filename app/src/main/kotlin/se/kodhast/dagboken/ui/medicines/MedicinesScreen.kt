@@ -48,7 +48,6 @@ import se.kodhast.dagboken.ui.common.title
 import se.kodhast.dagboken.ui.components.DagbokenEntryCard
 import se.kodhast.dagboken.ui.components.EntryFavorite
 import se.kodhast.dagboken.ui.components.EntryToggle
-import se.kodhast.dagboken.ui.components.NoticeBanner
 import se.kodhast.dagboken.ui.components.favoriteMenuItem
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.Neutral
@@ -71,6 +70,7 @@ import se.kodhast.ui.components.GroupLabel
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ListArchive
 import se.kodhast.ui.components.ListGroup
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 
@@ -265,7 +265,7 @@ private fun PrnCard(medicine: PrnMedicine, onEvent: (MedicinesEvent) -> Unit, on
 /** MEDF-2: periodsluten idag och i morgon – tryck öppnar det första receptet. */
 @Composable
 private fun EndingsBanner(endings: List<PeriodEnding>, today: LocalDate, onOpen: () -> Unit) {
-    NoticeBanner(endings.map { endingText(it, today) }.joinToString(" "), R.drawable.ic_bell, onOpen)
+    NoticeBanner(endings.map { endingText(it, today) }.joinToString(" "), R.drawable.ic_bell, onOpen, tone = Tone.Warning)
 }
 
 @Composable

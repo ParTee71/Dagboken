@@ -18,7 +18,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import se.kodhast.dagboken.R
-import se.kodhast.dagboken.ui.components.NoticeBanner
 import se.kodhast.dagboken.ui.components.ProgressBar
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.dagboken.ui.theme.IconSize
@@ -26,6 +25,7 @@ import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppDivider
 import se.kodhast.ui.components.ItemRow
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone

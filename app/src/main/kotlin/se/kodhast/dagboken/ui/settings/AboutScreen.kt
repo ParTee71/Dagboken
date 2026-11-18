@@ -1,7 +1,6 @@
 package se.kodhast.dagboken.ui.settings
 
 import android.content.Context
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -9,7 +8,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -32,12 +30,11 @@ import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.DetailLoader
 import se.kodhast.ui.common.DetailUiState
+import se.kodhast.ui.components.AboutCard
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.EntityDetailScreen
 import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.components.ItemRow
-import se.kodhast.ui.components.MakerMark
-import se.kodhast.ui.theme.Spacing
 
 /** Det Om Dagboken visar: versionen, licenstexterna för de bundlade typsnitten (DSN-2) och läkemedelslistans datum (REC-14). */
 data class AboutInfo(val versionName: String, val versionCode: Int, val licenses: String, val medicinesUpdated: LocalDate? = null)
@@ -74,7 +71,7 @@ fun AboutRoute(onBack: () -> Unit, viewModel: AboutViewModel = hiltViewModel()) 
 }
 
 /**
- * Om Dagboken som detaljskärm med titeln i toppraden: version med Kodhästs signatur under (NAV-9), licenser
+ * Om Dagboken som detaljskärm med titeln i toppraden: android-ui:s [AboutCard] (version med Kodhästs signatur under, NAV-9), licenser
  * (ihopfällda) och integritet.
  */
 @Composable
@@ -87,10 +84,7 @@ fun AboutScreen(state: DetailUiState<AboutInfo>, onBack: () -> Unit, onRetry: ()
         title = stringResource(R.string.settings_about),
         onRetry = onRetry
     ) { about ->
-        AppCard {
-            ItemRow(stringResource(R.string.about_version), subtitle = stringResource(R.string.about_build_format, about.versionName, about.versionCode))
-            MakerMark(Modifier.padding(horizontal = Spacing.m, vertical = Spacing.s))
-        }
+        AboutCard(stringResource(R.string.app_name), stringResource(R.string.about_build_format, about.versionName, about.versionCode))
         about.medicinesUpdated?.let { updated ->
             AppCard {
                 ItemRow(stringResource(R.string.settings_medicines), subtitle = stringResource(R.string.settings_medicines_note, DateFormat.display(updated)))

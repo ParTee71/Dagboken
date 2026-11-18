@@ -3,17 +3,14 @@ package se.kodhast.dagboken.ui.components
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import se.kodhast.dagboken.R
 import se.kodhast.dagboken.data.auth.AuthUser
+import se.kodhast.ui.components.AccountRow
 import se.kodhast.ui.components.AppBottomSheet
-import se.kodhast.ui.components.ConfirmDialog
 import se.kodhast.ui.components.ItemRow
+import se.kodhast.ui.components.SignOutRow
 
 /** De fem loggvalen bakom plusknappen, i ordning (NAV-10). */
 enum class LogChoice(@StringRes val label: Int, @DrawableRes val icon: Int) {
@@ -36,10 +33,10 @@ enum class SettingsPage(@StringRes val label: Int, @DrawableRes val icon: Int) {
 
 /**
  * Inställningsarket bakom avataren (NAV-9) – appens fasta ark, byggt
- * på [AppBottomSheet] med en [ItemRow] per val: överst kontot ([account]: foto, namn, e-post och
- * "Inloggad med Google", AUTH-3), sedan en rad per [SettingsPage] som [onOpen] öppnar, i debug-bygget
- * komponentgalleriet ([onOpenGallery] = `null` i release) och sist "Logga ut", som frågar med
- * [ConfirmDialog] innan [onSignOut] anropas (AUTH-2).
+ * på [AppBottomSheet] med en [ItemRow] per val: överst kontot ([account] i android-ui:s [AccountRow]:
+ * foto eller initialer, namn och e-post, AUTH-3), sedan en rad per [SettingsPage] som [onOpen] öppnar, i debug-bygget
+ * komponentgalleriet ([onOpenGallery] = `null` i release) och sist "Logga ut" ([SignOutRow]), som frågar
+ * innan [onSignOut] anropas (AUTH-2). Kontoraden och Logga ut är android-ui:s, likadana i alla appar.
  */
 @Composable
 fun AccountSheet(
@@ -51,38 +48,11 @@ fun AccountSheet(
     onOpen: ((SettingsPage) -> Unit)? = null
 ) {
     AppBottomSheet(stringResource(R.string.account_title), onDismiss, modifier) {
-        account?.let { AccountRow(it) }
+        account?.let { AccountRow(it.name, it.email, it.photoUrl) }
         onOpen?.let { open -> SettingsPage.entries.forEach { page -> SheetRow(page.label, page.icon, { open(page) }, navigates = true) } }
         onOpenGallery?.let { SheetRow(R.string.component_gallery, R.drawable.ic_widgets, it, navigates = true) }
-        var confirmSignOut by rememberSaveable { mutableStateOf(false) }
-        SheetRow(R.string.sign_out, R.drawable.ic_logout, { confirmSignOut = true })
-        if (confirmSignOut) {
-            ConfirmDialog(
-                title = stringResource(R.string.sign_out_title),
-                message = stringResource(R.string.sign_out_message),
-                confirmLabel = stringResource(R.string.sign_out),
-                onConfirm = {
-                    confirmSignOut = false
-                    onSignOut()
-                },
-                onDismiss = { confirmSignOut = false }
-            )
-        }
+        SignOutRow(stringResource(R.string.app_name), onSignOut)
     }
-}
-
-/** Kontot överst i arket: foto eller initialer, namn, e-post och inloggningssättet (AUTH-3). */
-@Composable
-private fun AccountRow(account: AuthUser) {
-    val provider = stringResource(R.string.account_signed_in_google)
-    val title = account.name ?: account.email ?: provider
-    val subtitle = listOfNotNull(account.email?.takeIf { it != title }, provider.takeIf { it != title })
-    ItemRow(
-        title,
-        subtitle = subtitle.joinToString("\n").ifEmpty { null },
-        leading = { UserAvatar(account, onClick = null) },
-        tinted = true
-    )
 }
 
 @Composable

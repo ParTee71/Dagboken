@@ -36,6 +36,8 @@ import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.common.DateFormat
+import se.kodhast.ui.components.AboutCard
+import se.kodhast.ui.components.AccountRow
 import se.kodhast.ui.components.AddSplitButton
 import se.kodhast.ui.components.AppButton
 import se.kodhast.ui.components.AppCard
@@ -63,10 +65,12 @@ import se.kodhast.ui.components.IconButtonVariant
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.PausableRow
 import se.kodhast.ui.components.QuantityStepper
 import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.SectionHeader
+import se.kodhast.ui.components.SignOutRow
 import se.kodhast.ui.components.Suggestion
 import se.kodhast.ui.components.SuggestionField
 import se.kodhast.ui.components.SwitchRow
@@ -118,6 +122,24 @@ class CatalogScreenshotTest {
                 AddSplitButton("Lägg till", {}, menu = listOf(AppMenuItem("Logga dos i efterhand", {})).asSplitMenu())
                 AddSplitButton("Nytt recept", {})
             }
+        }
+    }
+
+    @Test
+    fun `inställningarnas delar från android-ui`() {
+        captureLightAndDark("AccountRow_dagboken") {
+            Sheet {
+                AppCard {
+                    AccountRow("Anna Berg", "anna.berg@exempel.se", photoUrl = null)
+                    AccountRow(null, "anna.berg@exempel.se", photoUrl = null)
+                }
+            }
+        }
+        captureLightAndDark("SignOutRow_dagboken") {
+            Sheet { AppCard { SignOutRow("Dagboken", {}) } }
+        }
+        captureLightAndDark("AboutCard_dagboken") {
+            Sheet { AboutCard("Dagboken", "4.18.3 (bygge 111)") }
         }
     }
 
@@ -421,15 +443,15 @@ class CatalogScreenshotTest {
         }
         captureLightAndDark("NoticeBanner_varning") {
             Sheet {
-                NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {})
+                NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {}, tone = Tone.Warning)
                 NoticeBanner("Ändringar väntar på att synkas.", R.drawable.ic_cloud_upload, {}, tone = Tone.Neutral)
-                NoticeBanner("Health Connect saknas", R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.")
+                NoticeBanner("Health Connect saknas", R.drawable.ic_clock, onClick = null, detail = "Klockans data visas när Health Connect är kopplat.", tone = Tone.Warning)
             }
         }
         captureLightAndDark("NoticeBanner_atgard") {
             Sheet {
                 NoticeBanner("Health Connect kopplad", R.drawable.ic_watch, onClick = null, tone = Tone.Positive, detail = "Steg, puls, sömn och sömnkvalitet visas här.")
-                NoticeBanner("Health Connect saknas", R.drawable.ic_watch, {}, detail = "Installera Health Connect från Play Butik för att se klockans data.", action = "Installera")
+                NoticeBanner("Health Connect saknas", R.drawable.ic_watch, {}, detail = "Installera Health Connect från Play Butik för att se klockans data.", action = "Installera", tone = Tone.Warning)
             }
         }
         captureLightAndDark("FavoriteStar_lagen") {

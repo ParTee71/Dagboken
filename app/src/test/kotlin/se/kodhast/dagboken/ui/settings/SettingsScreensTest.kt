@@ -262,9 +262,9 @@ class SettingsScreensTest {
         rule.setContent { DagbokenTheme { AboutScreen(DetailUiState.Content(AboutInfo("4.0.0", 400, "SIL Open Font License", kotlinx.datetime.LocalDate(2026, 10, 7))), {}) } }
         rule.onNodeWithText("Om Dagboken").assertIsDisplayed()
         rule.onNodeWithText("Läkemedelsverket, ons 7 okt 2026 · CC BY 4.0").assertIsDisplayed()
-        rule.onNodeWithText("4.0.0 (bygge 400)").assertIsDisplayed()
+        rule.onNodeWithText("Version 4.0.0 (bygge 400)").assertIsDisplayed()
         // Kodhästs signatur står under versionen (NAV-9).
-        val version = rule.onNodeWithText("4.0.0 (bygge 400)").fetchSemanticsNode().boundsInRoot
+        val version = rule.onNodeWithText("Version 4.0.0 (bygge 400)").fetchSemanticsNode().boundsInRoot
         val signature = rule.onNodeWithText("En kodhäst-app").assertIsDisplayed().fetchSemanticsNode().boundsInRoot
         assertTrue(signature.top >= version.bottom, "Signaturen ska stå under versionen")
         rule.onNodeWithText("SIL Open Font License").assertDoesNotExist()

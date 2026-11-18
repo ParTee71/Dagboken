@@ -44,7 +44,7 @@ Paketet `reminders/` i appen (ARKITEKTUR.md → Lager och moduler); tidsberäkni
 | `AlarmLedger` | Senast schemalagd och senast utlöst per påminnelse (NOT-14), enhetslokalt, utan innehåll. |
 | `ReminderSync` | Startas från `MainActivity`; lägger om larmen när påminnelseinställningarna ändras i cachen (recept och doser påverkar inte larmen, bara notisens innehåll), avbokar vid utloggning. |
 | `ReminderIntents` / `ReminderLaunch` / `MomentLaunch` | Actions och extras (en gång); vad en tryckt notis öppnar (bara kända värden tolkas; `LogMood` öppnar måendearket på första steget; det gamla värdet `mood_feelings` läses som `LogMood`, skrivs aldrig); vad Stunden visar (tillfälle, klockslag, längd, hjälpfråga). |
-| `ReminderAccess` | Behörighetsläget och genvägarna till systeminställningarna (NOT-16), också helskärm (`fullScreen`, `openFullScreenIntentSettings`, NOT-20). |
+| `ReminderAccess` | Behörighetsläget och genvägarna till systeminställningarna (NOT-16), också helskärm (`fullScreen`, `openFullScreenIntentSettings`, NOT-20). Notisdelen – läget (`canPostNotifications`), frågan och notisinställningarna – är android-ui:s `rememberNotificationAccess`; exakta larm och helskärm stannar här. |
 | `ui/moment/MomentActivity` | Stundens helskärm (NOT-20): egen aktivitet, inte exporterad, `singleTask` i egen uppgift utanför Senaste, `setShowWhenLocked`/`setTurnScreenOn`, skärmen tänd under pausen; visar bara `MomentLaunch`. |
 
 Behörigheter i `AndroidManifest.xml`: `POST_NOTIFICATIONS`, `SCHEDULE_EXACT_ALARM`,
