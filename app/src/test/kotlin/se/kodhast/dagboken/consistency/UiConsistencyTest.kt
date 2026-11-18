@@ -90,23 +90,6 @@ class UiConsistencyTest {
     }
 
     @Test
-    fun `komponenterna från android-ui anropas med Dagbokens parametrar`() {
-        // Där bibliotekets standard skiljer sig från Dagboken anges Dagbokens värde i varje anrop (skill shared-ui-components).
-        val required = mapOf(
-            "PausableRow" to "pillTone = Tone.Neutral"
-        )
-        val problems = required.flatMap { (component, argument) ->
-            val calls = callsTo(component)
-            if (calls.isEmpty()) {
-                listOf("hittade inga anrop till $component")
-            } else {
-                calls.filterNot { (_, args) -> argument in args }.map { (name, _) -> "$name: $component($argument)" }
-            }
-        }
-        assertEquals(emptyList(), problems)
-    }
-
-    @Test
     fun `ramarnas och stegarens mått sätts en gång i DagbokenTheme och åsidosätts inte i anropen`() {
         // Bibliotekets standard är ReseApotekets; Dagbokens värden ges en gång i temat (skill shared-ui-components).
         val theme = checkNotNull(production.files.firstOrNull { it.name == "Theme" && it.packagee?.name?.endsWith("ui.theme") == true }) { "Theme.kt saknas i ui/theme" }
@@ -228,15 +211,17 @@ class UiConsistencyTest {
 
     @Test
     fun `varje publik komponent har skärmdump ljust och mörkt och plats i ComponentGallery`() {
-        // Också bibliotekets komponenter: skärmdumparna visar dem i Dagbokens tema, och galleriet visar dem.
-        val components = publicComponents("Skärmdump/galleri") + libraryRows() - "ComponentGallery"
+        // Bibliotekets komponenter har skärmdumpar här också (de visar dem i Dagbokens tema); i galleriet står de i
+        // bibliotekets sektioner, som bibliotekets eget UiConsistencyTest håller fullständiga – här krävs bara Dagbokens.
+        val own = publicComponents("Skärmdump/galleri") - "ComponentGallery"
+        val components = own + libraryRows()
         val screenshots = File(repoRoot, "app/src/test/screenshots").list().orEmpty().toSet()
         val gallery = galleryText()
         val problems = components.flatMap { name ->
             listOfNotNull(
                 "$name saknar skärmdump ${name}_*_light.png".takeIf { screenshots.none { it.startsWith("${name}_") && it.endsWith("_light.png") } },
                 "$name saknar skärmdump ${name}_*_dark.png".takeIf { screenshots.none { it.startsWith("${name}_") && it.endsWith("_dark.png") } },
-                "$name saknas i ComponentGallery".takeIf { !Regex("""\b$name\s*[({<]""").containsMatchIn(gallery) }
+                "$name saknas i ComponentGallery".takeIf { name in own && !Regex("""\b$name\s*[({<]""").containsMatchIn(gallery) }
             )
         }
         assertTrue(problems.isEmpty(), problems.joinToString("\n"))

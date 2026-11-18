@@ -1,18 +1,5 @@
 package se.kodhast.dagboken.ui.components
 
-import se.kodhast.dagboken.core.schema.TextLimits
-import se.kodhast.ui.components.DateTimeRow
-import se.kodhast.ui.components.DurationRow
-import se.kodhast.ui.components.FavoriteMark
-import se.kodhast.ui.components.FavoriteStar
-import se.kodhast.ui.components.Foldout
-import se.kodhast.ui.components.NoteCard
-import se.kodhast.ui.components.ReminderTimeRow
-import se.kodhast.ui.components.SectionFoldout
-import se.kodhast.ui.components.AppHeader
-import se.kodhast.ui.components.StatPill
-import se.kodhast.ui.components.asSplitMenu
-import se.kodhast.dagboken.ui.common.AppErrors
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,8 +18,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -52,37 +39,32 @@ import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.plus
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.plus
 import se.kodhast.dagboken.R
-import se.kodhast.dagboken.core.model.Screening
-import se.kodhast.dagboken.core.engine.TypeChoices
-import se.kodhast.dagboken.core.engine.OccasionStatus
-import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.core.engine.FeelingDay
 import se.kodhast.dagboken.core.engine.FeelingEntry
 import se.kodhast.dagboken.core.engine.FeelingStats
+import se.kodhast.dagboken.core.engine.IntervalPoint
+import se.kodhast.dagboken.core.engine.OccasionStatus
+import se.kodhast.dagboken.core.engine.StackedPoint
+import se.kodhast.dagboken.core.engine.TrendDirection
+import se.kodhast.dagboken.core.engine.TypeChoices
 import se.kodhast.dagboken.core.engine.computeFeelingStats
 import se.kodhast.dagboken.core.model.Feeling
 import se.kodhast.dagboken.core.model.FeelingStrength
 import se.kodhast.dagboken.core.model.Occasion
 import se.kodhast.dagboken.core.model.Option
 import se.kodhast.dagboken.core.model.OptionKind
+import se.kodhast.dagboken.core.model.Screening
 import se.kodhast.dagboken.core.model.SymptomScore
-import se.kodhast.dagboken.core.engine.IntervalPoint
-import se.kodhast.dagboken.core.engine.StackedPoint
-import se.kodhast.dagboken.core.engine.TrendDirection
+import se.kodhast.dagboken.core.schema.TextLimits
+import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.data.common.DataError
-import se.kodhast.ui.common.AuthGate
-import se.kodhast.ui.common.DetailUiState
-import se.kodhast.ui.common.EditorEvents
-import se.kodhast.ui.common.EditorUiState
-import se.kodhast.ui.components.ArchiveEvent
-import se.kodhast.ui.common.DateFormat
+import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.common.FeelingSentenceKind
-import se.kodhast.dagboken.ui.common.feelingSentence
-import se.kodhast.ui.common.ListUiState
 import se.kodhast.dagboken.ui.common.color
+import se.kodhast.dagboken.ui.common.feelingSentence
 import se.kodhast.dagboken.ui.common.scaleLevel
 import se.kodhast.dagboken.ui.diagram.ChartBand
 import se.kodhast.dagboken.ui.diagram.ChartSeries
@@ -97,13 +79,18 @@ import se.kodhast.dagboken.ui.diagram.StackedBarChart
 import se.kodhast.dagboken.ui.diagram.sleepStageSegments
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppTypography
-import se.kodhast.ui.components.favoriteMenuItem
-import se.kodhast.ui.theme.Spacing
-import se.kodhast.ui.theme.Tone
 import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.common.AuthGate
+import se.kodhast.ui.common.DateFormat
+import se.kodhast.ui.common.DetailUiState
+import se.kodhast.ui.common.EditorEvents
+import se.kodhast.ui.common.EditorUiState
+import se.kodhast.ui.common.ListUiState
+import se.kodhast.ui.components.AboutCard
+import se.kodhast.ui.components.AccountRow
 import se.kodhast.ui.components.AddAction
 import se.kodhast.ui.components.AddSplitButton
 import se.kodhast.ui.components.AppBottomSheet
@@ -112,16 +99,17 @@ import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppDivider
 import se.kodhast.ui.components.AppFilterChip
 import se.kodhast.ui.components.AppFloatingToolbar
+import se.kodhast.ui.components.AppHeader
 import se.kodhast.ui.components.AppIconButton
 import se.kodhast.ui.components.AppLoading
-import se.kodhast.ui.components.AuthGateHost
-import se.kodhast.ui.components.MakerMark
 import se.kodhast.ui.components.AppMenu
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.AppSegmentedChoice
 import se.kodhast.ui.components.AppSnackbarHost
 import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.AppTopBar
+import se.kodhast.ui.components.ArchiveEvent
+import se.kodhast.ui.components.AuthGateHost
 import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.CheckRow
 import se.kodhast.ui.components.ChipRow
@@ -129,8 +117,10 @@ import se.kodhast.ui.components.ChoiceChips
 import se.kodhast.ui.components.Confetti
 import se.kodhast.ui.components.ConfirmDialog
 import se.kodhast.ui.components.DateField
+import se.kodhast.ui.components.DateTimeRow
 import se.kodhast.ui.components.DeleteAction
 import se.kodhast.ui.components.DetailHeader
+import se.kodhast.ui.components.DurationRow
 import se.kodhast.ui.components.EmptyContent
 import se.kodhast.ui.components.EmptyExample
 import se.kodhast.ui.components.EmptyState
@@ -138,7 +128,10 @@ import se.kodhast.ui.components.EntityDetailScreen
 import se.kodhast.ui.components.EntityEditScreen
 import se.kodhast.ui.components.EntityListScreen
 import se.kodhast.ui.components.ExampleChips
+import se.kodhast.ui.components.FavoriteMark
+import se.kodhast.ui.components.FavoriteStar
 import se.kodhast.ui.components.FieldError
+import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.components.GroupLabel
 import se.kodhast.ui.components.IconButtonVariant
 import se.kodhast.ui.components.InfoPill
@@ -148,9 +141,16 @@ import se.kodhast.ui.components.ListArchive
 import se.kodhast.ui.components.ListGroup
 import se.kodhast.ui.components.ListSubgroup
 import se.kodhast.ui.components.LongPressSemantics
+import se.kodhast.ui.components.MakerMark
+import se.kodhast.ui.components.NoteCard
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.PausableRow
 import se.kodhast.ui.components.QuantityStepper
+import se.kodhast.ui.components.ReminderTimeRow
+import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.SectionHeader
+import se.kodhast.ui.components.SignOutRow
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.components.Suggestion
 import se.kodhast.ui.components.SuggestionField
 import se.kodhast.ui.components.SwipeToHide
@@ -161,200 +161,36 @@ import se.kodhast.ui.components.ToolbarItem
 import se.kodhast.ui.components.TopBarSize
 import se.kodhast.ui.components.UndoRequest
 import se.kodhast.ui.components.UndoSnackbar
+import se.kodhast.ui.components.asSplitMenu
+import se.kodhast.ui.components.favoriteMenuItem
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.components.longPress
-import se.kodhast.ui.components.AboutCard
-import se.kodhast.ui.components.AccountRow
-import se.kodhast.ui.components.NoticeBanner
-import se.kodhast.ui.components.SignOutRow
-
+import se.kodhast.ui.navigation.gallery.ComponentGallery as LibraryComponentGallery
+import se.kodhast.ui.navigation.gallery.GallerySection
+import se.kodhast.ui.theme.Spacing
+import se.kodhast.ui.theme.Tone
 /**
- * Alla komponenter och ramar på en skärm, med riktiga svenska texter (skill
- * shared-ui-components). Nås från inställningsarket → "Komponentgalleri" i debug-bygget.
- * `UiConsistencyTest` kontrollerar att varje publik komponent finns här.
+ * Komponentgalleriet (debug-bygget, inställningsarket → "Komponentgalleri"): android-ui:s `ComponentGallery` – först
+ * bibliotekets sektioner med varje publik komponent i Dagbokens tema, sedan Dagbokens egna nedan, med riktiga svenska
+ * texter och påhittad data (skill shared-ui-components). `UiConsistencyTest` kontrollerar att varje publik komponent i
+ * Dagboken finns här; bibliotekets kontrollerar biblioteket sina.
  */
 @Composable
 fun ComponentGallery(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxSize()) {
-        AppTopBar("Komponenter", size = TopBarSize.Small, onBack = onBack)
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.l, vertical = Spacing.s),
-            verticalArrangement = Arrangement.spacedBy(Spacing.l),
-        ) {
-            GallerySection("Knappar och meny") { Buttons() }
-            GallerySection("Kort, rader och rubriker") { Rows() }
-            GallerySection("Fält, val och mängder") { Fields() }
-            GallerySection("Poster, reglage och kalender") { Diary() }
-            GallerySection("Idag och konto") { Today() }
-            GallerySection("Diagram") { Diagrams() }
-            GallerySection("Laddning och navigering") { Progress() }
-            GallerySection("Dialog, sheet, meddelanden") { Overlays() }
-            GallerySection("Ramar") { Frames(onBack) }
-        }
-    }
-}
-
-@Composable
-private fun GallerySection(title: String, content: @Composable () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        Text(title, style = AppTypography.headline, modifier = Modifier.semantics { heading() })
-        content()
-    }
+    LibraryComponentGallery(
+        onBack,
+        modifier,
+        appSections = listOf(
+            GallerySection("Poster, reglage och kalender") { Diary() },
+            GallerySection("Idag och konto") { Today() },
+            GallerySection("Diagram") { Diagrams() },
+            GallerySection("Inställningsarket") { AccountSheetDemo() }
+        )
+    )
 }
 
 @Composable
 private fun Label(text: String) = GroupLabel(text)
-
-@Composable
-private fun Buttons() {
-    Label("AppButton")
-    AppButton("Nytt recept", {}, Modifier.fillMaxWidth(), icon = R.drawable.ic_add)
-    AppButton("Sparar …", {}, Modifier.fillMaxWidth(), loading = true)
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        AppButton("Logga nu", {}, variant = ButtonVariant.Secondary)
-        AppButton("Avbryt", {}, variant = ButtonVariant.Text)
-        AppButton("Spara", {}, enabled = false)
-    }
-    AppButton("Radera", {}, variant = ButtonVariant.Destructive)
-    Label("AppIconButton · AppMenu · AddSplitButton")
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s), verticalAlignment = Alignment.CenterVertically) {
-        AppIconButton(R.drawable.ic_arrow_back, "Tillbaka", {}, variant = IconButtonVariant.Tonal)
-        AppIconButton(R.drawable.ic_add, "Lägg till", {}, variant = IconButtonVariant.Tonal)
-        AppMenu(sampleMenu())
-        AppMenu(
-            listOf(AppMenuItem("Loratadin 10 mg", {}), AppMenuItem("Betapred 0,5 mg", {}, section = "Recept")),
-            contentDescription = "Fler, med avdelning",
-        )
-    }
-    AddSplitButton("Lägg till", {}, menu = listOf(AppMenuItem("Logga dos i efterhand", {}), AppMenuItem("Visa avslutade", {})).asSplitMenu())
-    AddSplitButton("Ny vid behov-medicin", {})
-}
-
-@Composable
-private fun sampleMenu() = listOf(
-    AppMenuItem("Arkivera", {}, R.drawable.ic_archive),
-    AppMenuItem("Radera", {}, R.drawable.ic_delete, destructive = true),
-)
-
-@Composable
-private fun Rows() {
-    var taken by remember { mutableStateOf(false) }
-    var reminders by remember { mutableStateOf(true) }
-    AppCard {
-        SectionHeader("Flytten", icon = R.drawable.ic_database, count = "Kontrollerat", countTone = Tone.Positive)
-        SectionHeader("Mediciner", icon = R.drawable.ic_pill, count = "2 / 3")
-        ItemRow(
-            "Promenad",
-            subtitle = "08:30 · 45 min · energi +3",
-            leading = { Text("🚶", style = AppTypography.sectionTitle) },
-            navigates = true,
-            onClick = {},
-        )
-        AppDivider()
-        ItemRow("Importera från fil", subtitle = "3.x-backup (.json) eller 4.0-export", icon = R.drawable.ic_file, navigates = true, onClick = {})
-        AppDivider()
-        ItemRow(
-            "Förkylning",
-            subtitle = "sedan fre 2 okt · 3 incheckningar",
-            trailing = { InfoPill("Pågående", tone = Tone.Warning) },
-            onClick = {},
-            navigates = true,
-        )
-        AppDivider()
-        PausableRow("Levaxin 50 µg", "1 tablett · morgon", "Dagligen", active = true, onClick = {}, pillTone = Tone.Neutral)
-        AppDivider()
-        PausableRow("Prednisolon 5 mg", "2 tabletter · morgon", "Kur", active = false, onClick = {}, pillTone = Tone.Neutral)
-        AppDivider()
-        CheckRow("Metformin 500 mg", taken, { taken = it }, subtitle = "12:00 · 2 tabletter", trailing = { InfoPill("Lunch", tone = Tone.Neutral) })
-        CheckRow("Omega-3", true, {}, subtitle = "08:00 · 2 kapslar")
-        CheckRow("Ipren 400 mg", false, {}, subtitle = "vid behov · tidigast 14:30", onClick = {}, accent = AppColors.swatch(2), trailing = { InfoPill("Snart", tone = Tone.Sun) })
-        CheckRow(
-            "D-vitamin 20 µg", false, {}, subtitle = "Förmiddag · 10:00", note = "Tas med mat.",
-            menu = listOf(AppMenuItem("Hoppa över", {}, R.drawable.ic_close)), below = { InfoPill("Försenat", tone = Tone.Warning) },
-        )
-        AppDivider()
-        SwitchRow("Medicinpåminnelser", reminders, { reminders = it }, subtitle = "6 tider om dagen")
-        SwitchRow("Måendepåminnelse", reminders, { reminders = it }, subtitle = "Frukost · 08:00", onClick = {})
-        AppDivider()
-        var favorite by remember { mutableStateOf(true) }
-        ItemRow("Alvedon 500 mg", subtitle = "Minst 4 h mellan · högst 8 per dag", navigates = true, onClick = {}, trailing = { FavoriteStar("Alvedon", favorite, { favorite = !favorite }) })
-        DagbokenEntryCard(
-            "Betapred 0,5 mg",
-            onClick = {},
-            subtitle = "Vid behov",
-            actions = listOf(favoriteMenuItem("Betapred", favorite) { favorite = !favorite }),
-            favorite = favorite
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            InfoPill("Betapred")
-            FavoriteMark()
-        }
-    }
-    NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {}, tone = Tone.Warning)
-    NoticeBanner("Health Connect kopplad", R.drawable.ic_watch, onClick = null, tone = Tone.Positive, detail = "Steg, puls, sömn och sömnkvalitet visas här.")
-    NoticeBanner("Health Connect saknas", R.drawable.ic_watch, {}, detail = "Installera Health Connect från Play Butik för att se klockans data.", action = "Installera", tone = Tone.Warning)
-    AppCard {
-        AccountRow("Anna Berg", "anna.berg@exempel.se", photoUrl = null)
-        SignOutRow(stringResource(R.string.app_name), {})
-    }
-    AboutCard(stringResource(R.string.app_name), "4.18.3 (bygge 111)")
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        InfoPill("Mediciner")
-        InfoPill("Klar", tone = Tone.Positive)
-        InfoPill("Snart", tone = Tone.Sun)
-        InfoPill("Försenad", tone = Tone.Warning)
-    }
-    InfoPill("Visa i Trender", tone = Tone.Neutral, icon = R.drawable.ic_trend, onClick = {})
-    var filter by remember { mutableIntStateOf(0) }
-    ChipRow {
-        listOf("Alla", "Mående", "Aktiviteter", "Doser", "Händelser", "Sjukdom").forEachIndexed { i, label ->
-            AppFilterChip(label, selected = i == filter, onClick = { filter = i })
-        }
-    }
-}
-
-@Composable
-private fun Fields() {
-    var name by remember { mutableStateOf("Promenad") }
-    var date by remember { mutableStateOf<LocalDate?>(LocalDate(2026, 10, 4)) }
-    var occasion by remember { mutableIntStateOf(0) }
-    var theme by remember { mutableIntStateOf(2) }
-    var minutes by remember { mutableIntStateOf(45) }
-    AppTextField(name, { name = it }, "Namn", helper = "Visas i dagboken")
-    AppTextField("", {}, "Namn", error = "Ange ett namn")
-    var boost by remember { mutableStateOf("25") }
-    AppTextField(boost, { boost = it }, "Höjning", suffix = "mg")
-    var medicine by remember { mutableStateOf("Alved") }
-    SuggestionField(
-        medicine,
-        { medicine = it },
-        "Namn",
-        suggestions = listOf(Suggestion("Alvedon 500 mg", "Filmdragerad tablett", 0..4), Suggestion("Alvedon forte 1 g", "Filmdragerad tablett", 0..4))
-            .takeIf { medicine == "Alved" }.orEmpty(),
-        onPick = { medicine = "Alvedon" },
-        footer = "Från dina vid behov-mediciner",
-    )
-    DateField("Datum", date, { date = it })
-    var boostEnd by remember { mutableStateOf<LocalDate?>(null) }
-    DateField("Slutdatum", boostEnd, { boostEnd = it }, emptyLabel = "Periodens slut", onClear = { boostEnd = null })
-    var unit by remember { mutableStateOf("mg") }
-    UnitChoice(unit, { unit = it })
-    var time by remember { mutableStateOf(LocalTime(8, 30)) }
-    TimeField("Tid", time, { time = it })
-    LabeledGroup("Tillfälle") {
-        ChoiceChips(listOf(0, 1, 2, 3), occasion, { occasion = it }, { listOf("Frukost", "Lunch", "Middag", "Kväll")[it] })
-    }
-    var form by remember { mutableStateOf<Int?>(1) }
-    LabeledGroup("Form (tryck på valet avmarkerar)") {
-        ChoiceChips<Int?>(listOf(0, 1, 2), form, { form = it }, { listOf("Tablett", "Kapsel", "Flytande")[it ?: 0] }, onClear = { form = null })
-    }
-    FieldError("Ingen anslutning just nu. Det du sparar skickas när nätet är tillbaka.")
-    AppFilterChip("Sjukdom", selected = false, onClick = {}, enabled = false)
-    AppFilterChip("Alvedon 500 mg", selected = false, onClick = {}, icon = R.drawable.ic_note, onLongClick = {}, onLongClickLabel = "Fler val")
-    ExampleChips(listOf("Promenad", "Yoga", "Städning"), {}, chosen = "Promenad")
-    AppSegmentedChoice(listOf("Ljust", "Mörkt", "Auto"), theme, { theme = it })
-    QuantityStepper(minutes, { minutes = it }, "minuter")
-}
 
 @Composable
 private fun Diary() {
@@ -370,7 +206,7 @@ private fun Diary() {
         note = "Gick i skogen med hunden, lätt regn.",
         expandedContent = { Text("Symptom: huvudvärk 2", style = AppTypography.body) },
         onEdit = {},
-        delete = DeleteAction("Radera Promenad?", "Posten tas bort för gott. Det går inte att ångra.") { deleted = true },
+        delete = DeleteAction("Radera Promenad?", "Posten tas bort för gott. Det går inte att ångra.") { deleted = true }
     )
     DagbokenEntryCard("Prednisolon 5 mg", onClick = {}, subtitle = "Avslutat 30 sep", inactive = true, onEdit = {})
     var active by remember { mutableStateOf(true) }
@@ -382,7 +218,7 @@ private fun Diary() {
         onEdit = {},
         inactive = !active,
         toggle = EntryToggle(active, { active = it }, "Sertralin aktivt"),
-        below = { InfoPill("Idag 75 mg (+25)") },
+        below = { InfoPill("Idag 75 mg (+25)") }
     )
     var starred by remember { mutableStateOf(true) }
     DagbokenEntryCard(
@@ -391,7 +227,7 @@ private fun Diary() {
         subtitle = "Minst 4 h mellan · högst 8 per dag",
         accent = MaterialTheme.colorScheme.primary,
         onEdit = {},
-        favoriteStar = EntryFavorite("Alvedon", starred) { starred = !starred },
+        favoriteStar = EntryFavorite("Alvedon", starred) { starred = !starred }
     )
     if (deleted) Text("Raderad", style = AppTypography.itemSubtitle)
     GalleryFeelingCards()
@@ -408,35 +244,12 @@ private fun Diary() {
             ValueSlider("Pausens längd", pause, { pause = it }, valueRange = 15..300, step = 15, valueText = DateFormat.durationSeconds(pause))
         }
     }
-    var sectionOpen by remember { mutableStateOf(true) }
-    AppCard {
-        SectionFoldout("Mediciner", sectionOpen, { sectionOpen = !sectionOpen }, icon = R.drawable.ic_pill, count = "3/5", tone = Tone.Positive) {
-            Text("Raderna visas när kortet är utfällt.", style = AppTypography.body)
-        }
-    }
     var symptoms by remember { mutableStateOf(listOf(SymptomScore("huvudvark", 4), SymptomScore("ovrigt", 2, "Ont i knät"))) }
     SymptomLogCard(GALLERY_SYMPTOMS, symptoms, { symptoms = it }, otherOptionId = "ovrigt")
-    var note by remember { mutableStateOf<String?>("Sov dåligt, vaknade vid fyra.") }
-    NoteCard(note, { note = it }, maxLength = TextLimits.LONG)
-    var date by remember { mutableStateOf(LocalDate(2026, 10, 4)) }
-    var time by remember { mutableStateOf(LocalTime(8, 30)) }
-    DateTimeRow(date, time, { date = it }, { time = it })
-    var minutes by remember { mutableIntStateOf(45) }
-    DurationRow(minutes, { minutes = it })
     var type by remember { mutableStateOf("promenad") }
     TypeChoiceField(GALLERY_TYPES, type, { type = it }, otherLabel = "Övrigt")
-    var reminder by remember { mutableStateOf(true) }
-    var reminderTime by remember { mutableStateOf(LocalTime(8, 0)) }
-    AppCard {
-        ReminderTimeRow("Efter frukost", reminderTime, { reminderTime = it }, enabled = reminder, onEnabledChange = { reminder = it })
-        ReminderTimeRow("Periodslut", LocalTime(9, 0), {})
-    }
-    Label("StatPill")
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        StatPill(R.drawable.ic_activity, "7 842", "Steg", Tone.Neutral)
-        StatPill(R.drawable.ic_sun, stringResource(R.string.value_missing), "Sömn", tone = Tone.Primary, onClick = {}, onClickLabel = "Begär åtkomst")
-    }
-    StatPill(R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", Tone.Sun, Modifier.fillMaxWidth(), onClick = {}, action = "Ge åtkomst")
+    var unit by remember { mutableStateOf("mg") }
+    UnitChoice(unit, { unit = it })
     var month by remember { mutableStateOf(LocalDate(2026, 10, 1)) }
     var picked by remember { mutableStateOf<LocalDate?>(LocalDate(2026, 10, 4)) }
     AppCard {
@@ -446,7 +259,7 @@ private fun Diary() {
             setOf(LocalDate(2026, 10, 1), LocalDate(2026, 10, 2), LocalDate(2026, 10, 4)),
             picked,
             { picked = it },
-            today = LocalDate(2026, 10, 5),
+            today = LocalDate(2026, 10, 5)
         )
     }
     Label("StepwiseScreeningForm")
@@ -457,7 +270,7 @@ private fun Diary() {
     AppCard {
         StepwiseScreeningForm(
             energy, { energy = it }, screeningFeelings, { screeningFeelings = it }, stress, { stress = it },
-            GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {},
+            GALLERY_SYMPTOMS, screeningSymptoms, { screeningSymptoms = it }, onSave = {}
         )
     }
     Label("StepwiseScreeningNavigation – sista steget, och klart-läge (NFR-21)")
@@ -509,7 +322,7 @@ internal data class GalleryNote(val feeling: Feeling, val strength: FeelingStren
 internal val GALLERY_NOTE_ROWS = listOf(
     GalleryNote(Feeling("angry", "frustrated"), FeelingStrength.STRONG, "fre 6 nov · Lunch", "Bussen kom inte och jag missade tiden."),
     GalleryNote(Feeling("glad", "content"), null, "ons 4 nov · Promenad", "Första gången runt hela sjön sedan förkylningen."),
-    GalleryNote(Feeling("calm", "grateful"), FeelingStrength.MILD, "tis 3 nov · Kvällsmat", "Middag med en vän, skönt att prata."),
+    GalleryNote(Feeling("calm", "grateful"), FeelingStrength.MILD, "tis 3 nov · Kvällsmat", "Middag med en vän, skönt att prata.")
 )
 
 /** Minihjulen med påhittade val: dagens kort och värmekartan med ord (#320); veckans dagar visar `FeelingWeekRow`. */
@@ -544,7 +357,7 @@ internal object GalleryFeelings {
             entry(monday, "glad.creative.curious", occasion = Occasion.BREAKFAST),
             entry(monday, "scared.anxious", occasion = Occasion.LUNCH),
             entry(monday, "calm.grateful", "glad.content", occasion = Occasion.DINNER),
-            entry(monday, "calm", occasion = Occasion.BEDTIME),
+            entry(monday, "calm", occasion = Occasion.BEDTIME)
         )
     )
 
@@ -554,7 +367,7 @@ internal object GalleryFeelings {
         entry(monday.plus(DatePeriod(days = 3)), "calm.relaxed", "glad.hopeful"),
         entry(monday.plus(DatePeriod(days = 4)), "calm.grateful", "glad.content", "calm.present"),
         entry(monday.plus(DatePeriod(days = 5)), "glad.playful"),
-        entry(monday.plus(DatePeriod(days = 6)), "calm.grateful", "calm.relaxed", "glad.creative"),
+        entry(monday.plus(DatePeriod(days = 6)), "calm.grateful", "calm.relaxed", "glad.creative")
     )
 
     /** Mån–sön, en dag utan känslor (onsdag) – samma gruppering per dag som Trenders vecka. */
@@ -578,7 +391,7 @@ internal object GalleryFeelings {
             listOf(
                 rated("scared.anxious" to FeelingStrength.CLEAR, "angry.frustrated" to FeelingStrength.STRONG, note = "angry.frustrated" to "Bussen kom inte och jag missade tiden."),
                 rated("calm.grateful" to FeelingStrength.CLEAR, "sad.tired" to FeelingStrength.MILD),
-                rated("angry.frustrated" to null, "calm.present" to FeelingStrength.STRONG),
+                rated("angry.frustrated" to null, "calm.present" to FeelingStrength.STRONG)
             )
     )
 
@@ -588,7 +401,7 @@ internal object GalleryFeelings {
             List(3) { entry(monday, "calm.present", "glad.content", "scared.anxious") } +
             listOf(
                 entry(monday, "scared.anxious.tense", "sad.tired", "glad.hopeful"),
-                entry(monday, "scared.insecure", "sad.lonely", "angry.irritated"),
+                entry(monday, "scared.insecure", "sad.lonely", "angry.irritated")
             )
     )
 }
@@ -608,7 +421,7 @@ private fun Today() {
         { week = it },
         today = today,
         datesWithEntries = setOf(LocalDate(2026, 9, 28), LocalDate(2026, 9, 30), LocalDate(2026, 10, 1), LocalDate(2026, 10, 3), today),
-        todayDone = done == GALLERY_TOTAL,
+        todayDone = done == GALLERY_TOTAL
     )
     Label("ProgressBar")
     ProgressBar(done, GALLERY_TOTAL)
@@ -656,14 +469,14 @@ private fun Diagrams() {
             Text("Energi per dag", style = AppTypography.sectionTitle)
             CompactDropdownButton(
                 periods[period],
-                periods.mapIndexed { i, name -> AppMenuItem(name, { period = i }, icon = if (i == period) R.drawable.ic_check else null) },
+                periods.mapIndexed { i, name -> AppMenuItem(name, { period = i }, icon = if (i == period) R.drawable.ic_check else null) }
             )
         }
         LineChart(
             listOf(ChartSeries("Energi", GalleryCharts.energy)),
             xLabels = GalleryCharts.days14,
             previous = if (withPrevious) listOf(ChartSeries("Energi", GalleryCharts.energyPrevious)) else emptyList(),
-            label = "Energi per dag",
+            label = "Energi per dag"
         )
         SwitchRow("Föregående period", withPrevious, { withPrevious = it })
     }
@@ -679,7 +492,7 @@ private fun Diagrams() {
             xLabels = GalleryCharts.days14,
             label = "Händelser och sjukdom",
             line = ChartSeries("Incheckningar", GalleryCharts.checkins),
-            bands = GalleryCharts.episodes,
+            bands = GalleryCharts.episodes
         )
     }
     Label("FeelingWordBars")
@@ -695,7 +508,6 @@ private fun Diagrams() {
     AppCard { LineChart(listOf(ChartSeries("Vilopuls", listOf(null, 58f, null))), label = "Vilopuls") }
 }
 
-/** Påhittade diagramdata för galleriet och dess skärmdumpar – luckor där inget loggats. */
 /** Fyra serier i diagrampaletten med varsin punktform – galleriets rad för flera serier och skärmdumpens underlag. */
 @Composable
 internal fun FourSeriesChart() {
@@ -708,6 +520,7 @@ internal fun FourSeriesChart() {
     )
 }
 
+/** Påhittade diagramdata för galleriet och dess skärmdumpar – luckor där inget loggats. */
 internal object GalleryCharts {
     private val start = LocalDate(2026, 9, 22)
 
@@ -730,7 +543,7 @@ internal object GalleryCharts {
         IntervalPoint(2f, 3.5f, 5f),
         IntervalPoint(6f, 7f, 8f),
         IntervalPoint(7f, 7.5f, 8f),
-        IntervalPoint(5f, 6.3f, 8f),
+        IntervalPoint(5f, 6.3f, 8f)
     )
 
     /** Händelser och sjukdom (TRD-21): händelsernas svårighet som staplar, incheckningarna som linje och en förkylning som fält. */
@@ -746,7 +559,7 @@ internal object GalleryCharts {
         StackedPoint(listOf(1.4f, 1.8f, 4.4f, 0.4f)),
         StackedPoint(listOf(0.8f, null, 3.2f, 1.1f)),
         StackedPoint(listOf(1.3f, 1.7f, 4.0f, 0.6f)),
-        StackedPoint(listOf(1.5f, 1.9f, 4.3f, 0.3f)),
+        StackedPoint(listOf(1.5f, 1.9f, 4.3f, 0.3f))
     )
 }
 
@@ -759,7 +572,7 @@ internal fun GalleryOccasionRows() {
         {},
         time = "08:12",
         values = listOf(OccasionValue("Energi", 7), OccasionValue("Stress", 4, higherIsBetter = false)),
-        onClick = {},
+        onClick = {}
     )
     OccasionRow("Lunch", OccasionStatus.LATE, {}, time = "12:00")
     OccasionRow("Kvällsmat", OccasionStatus.SOON, {}, time = "18:00")
@@ -776,7 +589,7 @@ internal fun GalleryOccasionRowWithFeelings() {
         time = "17:40",
         values = listOf(OccasionValue("Energi", 6), OccasionValue("Stress", 3, higherIsBetter = false)),
         feelings = listOf(Feeling("calm", "grateful"), Feeling("glad", "content")),
-        onClick = {},
+        onClick = {}
     )
 }
 
@@ -791,7 +604,7 @@ internal fun GalleryFeelingCards() {
         status = { InfoPill("Energi 7", tone = scaleLevel(7).tone) },
         onEdit = {},
         feelings = GALLERY_FEELING_POST.feelings,
-        feelingExtras = FeelingExtras.shown(GALLERY_FEELING_POST),
+        feelingExtras = FeelingExtras.shown(GALLERY_FEELING_POST)
     )
     DagbokenEntryCard(
         "Promenad",
@@ -800,7 +613,7 @@ internal fun GalleryFeelingCards() {
         accent = scaleLevel(4, -10..10).color,
         status = { InfoPill("+4", tone = scaleLevel(4, -10..10).tone) },
         onEdit = {},
-        feelings = GALLERY_POST_FEELINGS,
+        feelings = GALLERY_POST_FEELINGS
     )
 }
 
@@ -809,13 +622,12 @@ internal val GALLERY_SYMPTOMS = listOf(
     Option("huvudvark", OptionKind.SYMPTOM, "Huvudvärk", favorite = true),
     Option("trotthet", OptionKind.SYMPTOM, "Trötthet", sortOrder = 1),
     Option("yrsel", OptionKind.SYMPTOM, "Yrsel", sortOrder = 2),
-    Option("ovrigt", OptionKind.SYMPTOM, "Övrigt", sortOrder = 3),
+    Option("ovrigt", OptionKind.SYMPTOM, "Övrigt", sortOrder = 3)
 )
 
 /** Påhittade känslor på en post: fem, så att tre visas och resten som "+2" (HIST-10). */
 internal val GALLERY_POST_FEELINGS = listOf(Feeling("calm"), Feeling("glad", "content"), Feeling("strong"), Feeling("calm", "grateful"), Feeling("sad"))
 
-/** Påhittade valda känslor för galleriet och dess skärmdumpar – en på varje nivå (kärna, nyans, precisare ord). */
 /** Påhittad måendelogg med känslornas tre styrkor och en kommentar (SCR-9, SCR-10). */
 internal val GALLERY_FEELING_POST = Screening(
     "galleri",
@@ -826,227 +638,19 @@ internal val GALLERY_FEELING_POST = Screening(
 
 internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("scared", "anxious", "tense"), Feeling("glad"))
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Inställningsarket (NAV-9) bakom en knapp, med påhittat konto. */
 @Composable
-private fun Progress() {
-    Box(Modifier.fillMaxWidth().height(96.dp)) { AppLoading() }
-    MakerMark()
-    Label("AuthGateHost – inloggningen kontrolleras")
-    Box(Modifier.fillMaxWidth().height(96.dp)) { AuthGateHost(AuthGate.Loading, signIn = {}, updateRequired = {}) {} }
-    var tab by remember { mutableIntStateOf(0) }
-    AppFloatingToolbar(
-        items = listOf(
-            ToolbarItem("Idag", R.drawable.ic_sun),
-            ToolbarItem("Dagbok", R.drawable.ic_book),
-            ToolbarItem("Trender", R.drawable.ic_trend),
-            ToolbarItem("Mediciner", R.drawable.ic_pill),
-        ),
-        selectedIndex = tab,
-        onSelect = { tab = it },
-        action = ToolbarAction("Logga", R.drawable.ic_add) {},
-    )
-    // Kodhäst-sidhuvudet (NAV-12) medan ändringar väntar: prickarna hoppar, avataren har pluppen.
-    AppHeader(
-        "Idag",
-        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
-        subtitle = "God kväll · tisdag 17 november · vecka 47",
-        syncing = true,
-        account = { UserAvatar(GALLERY_ACCOUNT, {}, online = true) }
-    )
-    AppTopBar("Förkylning", size = TopBarSize.Small, onBack = {})
-}
-
-/** Appens fasta ark som galleriet kan öppna. */
-private enum class AppSheet { Account }
-
-@Composable
-private fun Overlays() {
-    var dialog by remember { mutableStateOf(false) }
-    var fieldDialog by remember { mutableStateOf(false) }
-    var sheet by remember { mutableStateOf(false) }
-    var appSheet by remember { mutableStateOf<AppSheet?>(null) }
-    var celebrate by remember { mutableStateOf(false) }
-    var archived by remember { mutableStateOf<UndoRequest?>(null) }
-    val snackbar = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        AppButton("Dialog", { dialog = true }, variant = ButtonVariant.Secondary)
-        AppButton("Sheet", { sheet = true }, variant = ButtonVariant.Secondary)
-        AppButton("Snackbar", { scope.launch { snackbar.showSnackbar("Ingen anslutning just nu.") } }, variant = ButtonVariant.Secondary)
-    }
-    Label("AccountSheet")
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        AppButton("Inställningsark", { appSheet = AppSheet.Account }, variant = ButtonVariant.Secondary)
-    }
-    AppButton("Dialog med fält", { fieldDialog = true }, variant = ButtonVariant.Secondary)
-    AppButton("Arkivera Yoga", { archived = UndoRequest("yoga", "Yoga") }, variant = ButtonVariant.Text)
-    UndoSnackbar(archived, snackbar, onUndo = { archived = null }, onDismissed = { archived = null })
-    if (dialog) {
-        ConfirmDialog("Radera Promenad?", "Aktiviteten tas bort för gott. Det går inte att ångra.", "Radera", { dialog = false }, { dialog = false }, destructive = true)
-    }
-    if (fieldDialog) {
-        // Ett fält i frågan (SJ-4): slutdatumet när en sjukdomsepisod avslutas.
-        var end by remember { mutableStateOf(LocalDate(2026, 10, 6)) }
-        ConfirmDialog("Avsluta episoden?", "Förkylning markeras som avslutad. Incheckningarna står kvar.", "Avsluta", { fieldDialog = false }, { fieldDialog = false }) {
-            DateField("Slutdatum", end, { end = it })
-        }
-    }
-    if (sheet) {
-        // Ändra minuterna: då frågar bakåt, svep ner och tryck utanför "Släng ändringar?" (dirty, NFR-10).
-        var minutes by remember { mutableIntStateOf(45) }
-        // Knappraden (footer, NFR-21) står fast i botten medan innehållet ovanför scrollar.
-        AppBottomSheet(
-            "Promenad",
-            onDismiss = { sheet = false },
-            dirty = minutes != 45,
-            footer = {
-                Spacer(Modifier.weight(1f))
-                AppButton("Spara", { sheet = false })
-            },
-        ) {
-            QuantityStepper(minutes, { minutes = it }, "minuter")
-        }
-    }
-    when (appSheet) {
-        AppSheet.Account -> AccountSheet(
-            onDismiss = { appSheet = null },
-            onSignOut = { appSheet = null },
-            onOpenGallery = { appSheet = null },
-            account = GALLERY_ACCOUNT,
-            onOpen = { appSheet = null },
-        )
-        null -> Unit
-    }
-    EmptyState(R.drawable.ic_book, "Inget loggat än", "Det du loggar med plusknappen hamnar här, dag för dag.") {
-        AppButton("Logga", {}, Modifier.fillMaxWidth(), icon = R.drawable.ic_add)
-    }
-    Box(Modifier.fillMaxWidth().height(120.dp)) {
-        AppButton("Allt klart för idag", { celebrate = !celebrate }, Modifier.align(Alignment.Center), variant = ButtonVariant.Text)
-        Confetti(Modifier.fillMaxSize(), play = celebrate)
-    }
-    AppSnackbarHost(snackbar)
-}
-
-@Composable
-private fun Frames(onBack: () -> Unit) {
-    var undo by remember { mutableStateOf<UndoRequest?>(null) }
-    var items by remember { mutableStateOf(listOf("Promenad", "Yoga", "Städning")) }
-    Label("EntityListScreen · SwipeToHide · UndoSnackbar")
-    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityListScreen(
-            title = "Aktivitetstyper",
-            state = if (items.isEmpty()) ListUiState.Empty else ListUiState.Content(items.toImmutableList()),
-            empty = EmptyContent(
-                R.drawable.ic_activity,
-                "Inga aktivitetstyper än",
-                "Promenad, yoga, städning – det du brukar göra.",
-                examples = listOf(EmptyExample("Promenad") { items = listOf("Promenad") }),
-            ),
-            add = AddAction("Lägg till", {}),
-            key = { it },
-            archive = ListArchive(undo = undo) { event ->
-                when (event) {
-                    ArchiveEvent.Undo -> {
-                        undo?.let { items = items + it.name }
-                        undo = null
-                    }
-                    ArchiveEvent.UndoDismissed -> undo = null
-                    else -> Unit
-                }
-            },
-        ) { item ->
-            SwipeToHide(onHide = { items = items - item; undo = UndoRequest(item, item) }) { swipe ->
-                ItemRow(item, swipe, subtitle = "Favorit", navigates = true, onClick = {})
-            }
-        }
-    }
-    Label("EntityListScreen – fel")
-    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityListScreen<String>(
-            title = "Recept",
-            state = ListUiState.Error(AppErrors.map(DataError.Offline)),
-            empty = EmptyContent(R.drawable.ic_pill, "Inga recept än", ""),
-            add = AddAction("Nytt recept", {}),
-            key = { it },
-        ) {}
-    }
-    Label("EntityListScreen – utan lägg till, dagar utan räknare och sidfot")
-    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityListScreen(
-            title = "Dagbok",
-            state = ListUiState.Content(persistentListOf("Idag" to "Efter frukost", "Idag" to "Levaxin 100 µg", "Igår" to "Promenad")),
-            empty = EmptyContent(R.drawable.ic_book, "Inga poster än", "Logga med plusknappen."),
-            add = null,
-            key = { it.second },
-            group = { ListGroup(it.first, tone = Tone.Neutral, cards = true, showCount = false) },
-            footer = { AppButton("Visa äldre än ett år", {}, Modifier.fillMaxWidth(), variant = ButtonVariant.Secondary, icon = R.drawable.ic_expand_more) },
-        ) { DagbokenEntryCard(it.second, onClick = {}) }
-    }
-    Label("EntityListScreen – rubrik, grupper, undergrupper, kolumner, hopfällbar")
-    val grouped = listOf(
-        "Morgon" to "Levaxin 50 µg", "Morgon" to "D-vitamin", "" to "Alvedon", "" to "Ipren", "" to "Desloratadin", "-" to "Prednisolon",
-    )
-    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityListScreen(
-            title = "Mediciner",
-            subtitle = "sön 4 okt",
-            state = ListUiState.Content(grouped.toImmutableList()),
-            empty = EmptyContent(R.drawable.ic_pill, "", ""),
-            add = AddAction("", {}),
-            key = { it.second },
-            onBack = {},
-            group = { (slot, _) ->
-                when (slot) {
-                    "" -> ListGroup("Vid behov", count = "3", columns = 2)
-                    "-" -> ListGroup("Avslutade", count = "1", collapsible = true)
-                    else -> ListGroup("Recept", tone = Tone.Neutral, count = "1 / 2")
-                }
-            },
-            subgroup = { (slot, _) -> if (slot.length > 1) ListSubgroup(slot, AppColors.swatch(0)) else null },
-        ) { (_, name) -> CheckRow(name, name.startsWith("L"), {}) }
-    }
-    Label("EntityDetailScreen – finns inte längre")
-    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityDetailScreen<String>(DetailUiState.Error(AppErrors.notFound()), header = { DetailHeader(it) }, onBack = {}) {}
-    }
-    Label("EntityEditScreen")
-    var name by remember { mutableStateOf("") }
-    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityEditScreen(
-            title = "Ny aktivitetstyp",
-            state = EditorUiState(value = name, errors = if (name.isBlank()) persistentMapOf("name" to R.string.error_unknown) else persistentMapOf(), isValid = name.isNotBlank(), isDirty = name.isNotEmpty()),
-            events = EditorEvents.None,
-            onSave = {},
-            onClose = onBack,
-            onArchive = {},
-            delete = DeleteAction("Radera Yoga?", "Aktivitetstypen tas bort för gott. Det går inte att ångra.") {}
-        ) {
-            AppTextField(name, { name = it }, "Namn")
-        }
-    }
-    Label("EntityDetailScreen")
-    Box(Modifier.fillMaxWidth().height(FRAME_HEIGHT)) {
-        EntityDetailScreen(
-            state = DetailUiState.Content("Förkylning"),
-            header = { DetailHeader(it, "sedan fre 2 okt · pågående") },
-            onBack = onBack,
-            onEdit = {},
-            menu = { listOf(AppMenuItem("Avsluta episoden", {}, R.drawable.ic_check)) },
-            leading = { Text("🤧", style = AppTypography.headline) }
-        ) {
-            AppCard {
-                SectionHeader("Incheckningar", icon = R.drawable.ic_thermometer, count = "1")
-                ItemRow("sön 4 okt · 08:15", subtitle = "Svårighetsgrad 4 · hosta, snuva", navigates = true, onClick = {})
-            }
-        }
+private fun AccountSheetDemo() {
+    var open by remember { mutableStateOf(false) }
+    AppButton("Inställningsark", { open = true }, variant = ButtonVariant.Secondary)
+    if (open) {
+        AccountSheet(onDismiss = { open = false }, onSignOut = { open = false }, onOpenGallery = { open = false }, account = GALLERY_ACCOUNT, onOpen = { open = false })
     }
 }
-
-private val FRAME_HEIGHT = 480.dp
 
 /** Aktivitetstyperna i galleriet: två stjärnmärkta som chips, resten under "Fler typer" med Övrigt sist. */
 private val GALLERY_TYPES = TypeChoices(
     favorites = listOf(Option("promenad", OptionKind.ACTIVITY, "Promenad", favorite = true), Option("jobb", OptionKind.ACTIVITY, "Jobb", favorite = true)),
     more = listOf(Option("vila", OptionKind.ACTIVITY, "Vila", sortOrder = 2)),
-    other = "ovrigt",
+    other = "ovrigt"
 )
