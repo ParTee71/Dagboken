@@ -17,10 +17,11 @@ import se.kodhast.dagboken.core.model.Screening
 import se.kodhast.dagboken.core.model.SymptomScore
 import se.kodhast.dagboken.data.repository.OptionsRepository
 import se.kodhast.dagboken.data.repository.ScreeningRepository
-import se.kodhast.dagboken.ui.common.EditorSheet
-import se.kodhast.dagboken.ui.common.EditorSheetState
+import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.common.choices
 import se.kodhast.dagboken.ui.common.nowInMinutes
+import se.kodhast.ui.common.EditorSheet
+import se.kodhast.ui.common.EditorSheetState
 
 /**
  * Måendearkets rubrik (HEM-5), tagen när arket öppnas: tillfället och – en annan dag än idag – dagen. Symptomvalen följer symptomlistan medan arket är öppet
@@ -47,7 +48,7 @@ class ScreeningSheet(
      */
     val symptomOptions: StateFlow<List<Option>> = options.choices(OptionKind.SYMPTOM, scope, sharing)
 
-    private val sheet = EditorSheet<Screening, ScreeningSheetInfo>(scope)
+    private val sheet = EditorSheet<Screening, ScreeningSheetInfo>(scope, AppErrors)
 
     /** Arket när det är öppet. */
     val current: StateFlow<EditorSheetState<Screening, ScreeningSheetInfo>?> = sheet.current

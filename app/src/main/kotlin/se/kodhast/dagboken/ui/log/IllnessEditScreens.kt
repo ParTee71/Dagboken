@@ -33,6 +33,7 @@ import se.kodhast.dagboken.core.schema.CheckinCodec
 import se.kodhast.dagboken.core.schema.CollectionNames
 import se.kodhast.dagboken.core.schema.DocumentRules
 import se.kodhast.dagboken.core.schema.IllnessEpisodeCodec
+import se.kodhast.dagboken.core.schema.TextLimits
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.withFallback
 import se.kodhast.dagboken.data.repository.EntryStore
@@ -52,7 +53,6 @@ import se.kodhast.dagboken.ui.common.nonBlank
 import se.kodhast.dagboken.ui.common.rememberEntryForm
 import se.kodhast.dagboken.ui.common.rulesValidator
 import se.kodhast.dagboken.ui.common.title
-import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.SymptomLogCard
 import se.kodhast.dagboken.ui.components.ValueSlider
 import se.kodhast.dagboken.ui.theme.AppColors
@@ -64,6 +64,7 @@ import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.DateField
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
+import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.theme.Tone
 
 // Sjukdom från plusknappen, Idag och sjukdomsdetaljen (SJ-1, SJ-2, SJ-3, SJ-8, SJ-11, SJ-12): en ny episod med sin
@@ -191,7 +192,7 @@ private fun EpisodeFields(
     )
     episode.start?.let { day -> DateField(stringResource(R.string.prescription_start), day, onStart, error = error(IllnessField.START)) }
     between()
-    NoteCard(episode.note, { note -> change(IllnessField.NOTE) { it.copy(note = note) } }, error = error(IllnessField.NOTE))
+    NoteCard(episode.note, { note -> change(IllnessField.NOTE) { it.copy(note = note) } }, error = error(IllnessField.NOTE), maxLength = TextLimits.LONG)
 }
 
 /**
@@ -326,7 +327,7 @@ fun CheckinEditScreen(form: EntryForm<Checkin>, onClose: () -> Unit, episode: Il
         }
         EntryDateTimeRow(form, c.date, c.time, { copy(date = it) }, { copy(time = it) })
         CheckinValues(c, symptomOptions, form.stored?.symptoms.orEmpty()) { change -> form.change(transform = change) }
-        NoteCard(c.note, { note -> form.change(IllnessField.NOTE) { it.copy(note = note) } }, error = error(IllnessField.NOTE))
+        NoteCard(c.note, { note -> form.change(IllnessField.NOTE) { it.copy(note = note) } }, error = error(IllnessField.NOTE), maxLength = TextLimits.LONG)
     }
 }
 

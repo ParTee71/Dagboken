@@ -18,6 +18,7 @@ import se.kodhast.ui.components.AppButton
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.SectionFoldout
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.theme.Spacing
 
 /**

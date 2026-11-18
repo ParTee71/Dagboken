@@ -26,7 +26,6 @@ import se.kodhast.dagboken.core.engine.isPrescribed
 import se.kodhast.dagboken.core.schema.DocumentRules
 import se.kodhast.dagboken.ui.common.ScaleLevel
 import se.kodhast.dagboken.ui.common.color
-import se.kodhast.dagboken.ui.common.durationText
 import se.kodhast.dagboken.ui.common.entryDeleteAction
 import se.kodhast.dagboken.ui.common.illnessDayText
 import se.kodhast.dagboken.ui.common.label
@@ -240,7 +239,7 @@ private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entr
     is DiaryEntry.Action -> {
         val a = entry.activity
         val title = a.customText.nonBlank() ?: row.optionName ?: stringResource(R.string.log_activity)
-        val detail = a.minutes?.let { durationText(it) } ?: stringResource(R.string.log_activity)
+        val detail = a.minutes?.let { DateFormat.duration(it) } ?: stringResource(R.string.log_activity)
         scaledCardText(title, subtitle(entry.time, detail), stringResource(R.string.diary_energy_format, scaleValueText(a.energy, DocumentRules.ACTIVITY_ENERGY)), scaleLevel(a.energy, DocumentRules.ACTIVITY_ENERGY))
     }
 
@@ -251,7 +250,7 @@ private fun cardText(row: DiaryRow.Entry): CardText = when (val entry = row.entr
 
     is DiaryEntry.Happening -> {
         val e = entry.event
-        val detail = e.durationMinutes.takeIf { it > 0 }?.let { durationText(it) } ?: stringResource(R.string.log_event)
+        val detail = e.durationMinutes.takeIf { it > 0 }?.let { DateFormat.duration(it) } ?: stringResource(R.string.log_event)
         scaledCardText(row.optionName ?: stringResource(R.string.log_event), subtitle(entry.time, detail), stringResource(R.string.diary_severity_format, e.severity), scaleLevel(e.severity, higherIsBetter = false))
     }
 

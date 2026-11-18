@@ -56,7 +56,6 @@ import se.kodhast.dagboken.ui.components.DayDoneCard
 import se.kodhast.dagboken.ui.components.FeelingMiniWheel
 import se.kodhast.dagboken.ui.components.FeelingPills
 import se.kodhast.dagboken.ui.components.ProgressBar
-import se.kodhast.dagboken.ui.components.StatPill
 import se.kodhast.dagboken.ui.health.HealthEvent
 import se.kodhast.dagboken.ui.health.HealthTodayCard
 import se.kodhast.dagboken.ui.health.HealthTodayUiState
@@ -93,6 +92,7 @@ import se.kodhast.ui.components.MessageSnackbar
 import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.SectionHeader
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.components.UndoRequest
 import se.kodhast.ui.components.UndoSnackbar
 import se.kodhast.ui.theme.Spacing
@@ -240,9 +240,9 @@ private fun WeekSummaryCard(summary: WeekSummary) {
                 EnergyTrend.DOWN -> R.string.today_week_energy_down to Tone.Warning
                 EnergyTrend.SAME -> R.string.today_week_energy_same to Tone.Neutral
             }
-            StatPill(R.drawable.ic_trend, stringResource(trend), stringResource(R.string.energy), Modifier.weight(1f), tone = tone)
+            StatPill(R.drawable.ic_trend, stringResource(trend), stringResource(R.string.energy), tone, Modifier.weight(1f))
             summary.dosesTakenPercent?.let { percent ->
-                StatPill(R.drawable.ic_pill, stringResource(R.string.today_week_doses_format, percent), stringResource(R.string.today_week_doses), Modifier.weight(1f))
+                StatPill(R.drawable.ic_pill, stringResource(R.string.today_week_doses_format, percent), stringResource(R.string.today_week_doses), Tone.Neutral, Modifier.weight(1f))
             }
         }
     }

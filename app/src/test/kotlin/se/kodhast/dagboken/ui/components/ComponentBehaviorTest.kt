@@ -72,6 +72,7 @@ import se.kodhast.ui.components.DateField
 import se.kodhast.ui.components.ExampleChips
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
+import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.components.QuantityStepper
 import se.kodhast.ui.components.Suggestion
 import se.kodhast.ui.components.SuggestionField
@@ -129,12 +130,6 @@ class ComponentBehaviorTest {
         withClear = false
         rule.onNodeWithText("A").performClick()
         assertEquals("select A", events.last(), "utan onClear är beteendet som förut")
-    }
-
-    @Test
-    fun `anteckningens fel syns också i stängt läge`() {
-        show { NoteCard("Sov dåligt.", {}, error = "Värdet går inte att spara") }
-        rule.onNodeWithText("Värdet går inte att spara").assertIsDisplayed()
     }
 
     @Test

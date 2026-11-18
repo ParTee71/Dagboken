@@ -66,6 +66,7 @@ import se.kodhast.dagboken.core.model.Prescription
 import se.kodhast.dagboken.core.model.Repeat
 import se.kodhast.dagboken.core.model.Schedule
 import se.kodhast.dagboken.core.model.Slot
+import se.kodhast.dagboken.core.schema.TextLimits
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.medicines.MedicineRepository
 import se.kodhast.dagboken.data.repository.PrescriptionRepository
@@ -77,7 +78,6 @@ import se.kodhast.dagboken.ui.common.label
 import se.kodhast.dagboken.ui.common.repeatText
 import se.kodhast.dagboken.ui.common.weekdaysText
 import se.kodhast.dagboken.ui.components.MEDICINE_UNITS
-import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.UnitChoice
 import se.kodhast.dagboken.ui.theme.AppTypography
 import se.kodhast.ui.common.DateFormat
@@ -98,6 +98,7 @@ import se.kodhast.ui.components.DateField
 import se.kodhast.ui.components.EntityEditScreen
 import se.kodhast.ui.components.FieldError
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.components.QuantityStepper
 import se.kodhast.ui.components.SwitchRow
 import se.kodhast.ui.theme.Spacing
@@ -439,7 +440,7 @@ fun PrescriptionEditScreen(
         RepeatSection(p, error(PrescriptionField.DAYS), onEvent)
         PeriodSection(p.period, periodChoice, error(PrescriptionField.PERIOD_END), onEvent)
         BoostsSection(p, canAddBoost, { index -> error(PrescriptionField.boostDose(index)) to error(PrescriptionField.boostDates(index)) }, onEvent)
-        NoteCard(p.note, { onEvent(PrescriptionEditEvent.NoteChanged(it)) })
+        NoteCard(p.note, { onEvent(PrescriptionEditEvent.NoteChanged(it)) }, maxLength = TextLimits.LONG)
         AppCard {
             SwitchRow(
                 stringResource(R.string.prescription_active),

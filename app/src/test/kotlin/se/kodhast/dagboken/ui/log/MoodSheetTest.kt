@@ -45,11 +45,11 @@ import se.kodhast.dagboken.navigation.AppBackStack
 import se.kodhast.dagboken.navigation.open
 import se.kodhast.dagboken.reminders.ReminderLaunch
 import se.kodhast.dagboken.testing.MainDispatcherRule
-import se.kodhast.dagboken.ui.common.EditorSheetState
 import se.kodhast.dagboken.ui.common.SelectedDay
 import se.kodhast.dagboken.ui.common.dataError
 import se.kodhast.dagboken.ui.components.ScreeningStep
 import se.kodhast.dagboken.ui.components.screeningSteps
+import se.kodhast.ui.common.EditorSheetState
 
 /**
  * Måendearket (HEM-5, SCR-1, SCR-2, SCR-5, SCR-6, NFR-10) – ett ark för Idag, plusknappen och Dagbok (`LogViewModel`).

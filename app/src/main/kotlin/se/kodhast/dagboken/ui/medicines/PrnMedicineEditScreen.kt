@@ -18,6 +18,7 @@ import se.kodhast.dagboken.core.medicine.MedicineEntry
 import se.kodhast.dagboken.core.medicine.MedicineMatch
 import se.kodhast.dagboken.core.medicine.filledFrom
 import se.kodhast.dagboken.core.model.PrnMedicine
+import se.kodhast.dagboken.core.schema.TextLimits
 import se.kodhast.dagboken.data.medicines.MedicineRepository
 import se.kodhast.dagboken.data.repository.EntryStore
 import se.kodhast.dagboken.data.repository.PrnMedicineRepository
@@ -29,12 +30,12 @@ import se.kodhast.dagboken.ui.common.EntryForm
 import se.kodhast.dagboken.ui.common.nonBlank
 import se.kodhast.dagboken.ui.common.rememberEntryForm
 import se.kodhast.dagboken.ui.components.MEDICINE_UNITS
-import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.UnitChoice
 import se.kodhast.ui.common.Validator
 import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.DeleteAction
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.components.QuantityStepper
 
 /** Fälten i formuläret. */
@@ -181,6 +182,6 @@ fun PrnMedicineEditScreen(
                 valueText = { if (it <= 0) stringResource(R.string.prn_unlimited) else it.toString() }
             )
         }
-        NoteCard(m.note, { note -> change(null) { it.copy(note = note) } })
+        NoteCard(m.note, { note -> change(null) { it.copy(note = note) } }, maxLength = TextLimits.LONG)
     }
 }

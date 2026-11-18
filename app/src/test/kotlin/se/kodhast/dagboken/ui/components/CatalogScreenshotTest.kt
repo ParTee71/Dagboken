@@ -24,10 +24,10 @@ import se.kodhast.dagboken.core.engine.TypeChoices
 import se.kodhast.dagboken.core.model.Option
 import se.kodhast.dagboken.core.model.OptionKind
 import se.kodhast.dagboken.core.model.SymptomScore
+import se.kodhast.dagboken.core.schema.TextLimits
 import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.common.color
-import se.kodhast.dagboken.ui.common.durationText
 import se.kodhast.dagboken.ui.common.scaleLevel
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.AppTypography
@@ -56,8 +56,12 @@ import se.kodhast.ui.components.CheckRow
 import se.kodhast.ui.components.ChipRow
 import se.kodhast.ui.components.ChoiceChips
 import se.kodhast.ui.components.DateField
+import se.kodhast.ui.components.DateTimeRow
 import se.kodhast.ui.components.DeleteAction
+import se.kodhast.ui.components.DurationRow
 import se.kodhast.ui.components.ExampleChips
+import se.kodhast.ui.components.FavoriteMark
+import se.kodhast.ui.components.FavoriteStar
 import se.kodhast.ui.components.FieldError
 import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.components.GroupLabel
@@ -65,12 +69,15 @@ import se.kodhast.ui.components.IconButtonVariant
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.PausableRow
 import se.kodhast.ui.components.QuantityStepper
+import se.kodhast.ui.components.ReminderTimeRow
 import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.components.SignOutRow
+import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.components.Suggestion
 import se.kodhast.ui.components.SuggestionField
 import se.kodhast.ui.components.SwitchRow
@@ -79,6 +86,7 @@ import se.kodhast.ui.components.ToolbarAction
 import se.kodhast.ui.components.ToolbarItem
 import se.kodhast.ui.components.TopBarSize
 import se.kodhast.ui.components.asSplitMenu
+import se.kodhast.ui.components.favoriteMenuItem
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
@@ -395,7 +403,7 @@ class CatalogScreenshotTest {
                 DagbokenEntryCard(
                     "Promenad",
                     onClick = {},
-                    subtitle = "${DateFormat.time(LocalTime(8, 30))} · ${durationText(45)} · återhämtande",
+                    subtitle = "${DateFormat.time(LocalTime(8, 30))} · ${DateFormat.duration(45)} · återhämtande",
                     leading = { Text("🚶", style = AppTypography.sectionTitle) },
                     accent = scaleLevel(3, -10..10).color,
                     status = { InfoPill("+3", tone = Tone.Sun) },
@@ -539,22 +547,22 @@ class CatalogScreenshotTest {
         }
         captureLightAndDark("NoteCard_lagen") {
             Sheet {
-                NoteCard(null, {})
-                NoteCard("Sov dåligt, vaknade vid fyra. Tog en promenad före frukost och mådde bättre efteråt.", {})
-                NoteCard("Sov dåligt.", {}, initiallyExpanded = true)
+                NoteCard(null, {}, maxLength = TextLimits.LONG)
+                NoteCard("Sov dåligt, vaknade vid fyra. Tog en promenad före frukost och mådde bättre efteråt.", {}, maxLength = TextLimits.LONG)
+                NoteCard("Sov dåligt.", {}, initiallyExpanded = true, maxLength = TextLimits.LONG)
             }
         }
         captureLightAndDark("StatPill_toner") {
             Sheet {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                    StatPill(R.drawable.ic_activity, "7 842", "Steg")
+                    StatPill(R.drawable.ic_activity, "7 842", "Steg", Tone.Neutral)
                     StatPill(R.drawable.ic_sun, "7 h 45 min", "Sömn", tone = Tone.Primary)
                 }
                 StatPill(R.drawable.ic_thermometer, "—", "Puls", tone = Tone.Warning, onClick = {}, onClickLabel = "Begär åtkomst")
             }
         }
         captureLightAndDark("StatPill_atgard") {
-            Sheet { StatPill(R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", Modifier.fillMaxWidth(), tone = Tone.Sun, onClick = {}, action = "Ge åtkomst") }
+            Sheet { StatPill(R.drawable.ic_lock, "2 saknas", "Träning · Syremättnad", Tone.Sun, Modifier.fillMaxWidth(), onClick = {}, action = "Ge åtkomst") }
         }
         captureLightAndDark("DateTimeRow_standard") { Sheet { DateTimeRow(LocalDate(2026, 10, 4), LocalTime(8, 30), {}, {}) } }
         captureLightAndDark("DurationRow_snabbval") { Sheet { DurationRow(60, {}) } }
@@ -572,7 +580,7 @@ class CatalogScreenshotTest {
             }
         }
         captureLightAndDark("NoteCard_fel") {
-            Sheet { NoteCard("Sov dåligt.", {}, error = "Värdet går inte att spara – korta eller ändra det") }
+            Sheet { NoteCard("Sov dåligt.", {}, error = "Värdet går inte att spara – korta eller ändra det", maxLength = TextLimits.LONG) }
         }
         captureLightAndDark("ReminderTimeRow_lagen") {
             Sheet {

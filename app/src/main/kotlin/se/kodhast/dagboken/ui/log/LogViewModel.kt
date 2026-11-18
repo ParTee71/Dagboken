@@ -41,9 +41,9 @@ import se.kodhast.dagboken.data.repository.OptionsRepository
 import se.kodhast.dagboken.data.repository.PrnMedicineRepository
 import se.kodhast.dagboken.data.repository.ScreeningRepository
 import se.kodhast.dagboken.data.repository.SettingsRepository
-import se.kodhast.dagboken.ui.common.EditorSheetState
 import se.kodhast.dagboken.ui.common.SelectedDay
 import se.kodhast.dagboken.ui.common.minutes
+import se.kodhast.ui.common.EditorSheetState
 import se.kodhast.ui.common.screenSharing
 
 /**

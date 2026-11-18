@@ -49,6 +49,7 @@ import se.kodhast.dagboken.core.model.ReminderSettings
 import se.kodhast.dagboken.core.model.Slot
 import se.kodhast.dagboken.core.schema.CollectionNames
 import se.kodhast.dagboken.core.schema.DoseCodec
+import se.kodhast.dagboken.core.schema.TextLimits
 import se.kodhast.dagboken.data.common.DataError
 import se.kodhast.dagboken.data.common.withFallback
 import se.kodhast.dagboken.data.repository.DoseRepository
@@ -70,8 +71,6 @@ import se.kodhast.dagboken.ui.common.prnLimits
 import se.kodhast.dagboken.ui.common.rememberEntryForm
 import se.kodhast.dagboken.ui.common.rulesValidator
 import se.kodhast.dagboken.ui.common.title
-import se.kodhast.dagboken.ui.components.DateTimeRow
-import se.kodhast.dagboken.ui.components.NoteCard
 import se.kodhast.dagboken.ui.components.UnitChoice
 import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.common.EditorState
@@ -80,10 +79,13 @@ import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppTextField
 import se.kodhast.ui.components.ChoiceChips
 import se.kodhast.ui.components.DateField
+import se.kodhast.ui.components.DateTimeRow
 import se.kodhast.ui.components.FieldError
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.components.NoticeBanner
+import se.kodhast.ui.components.R as UiR
 import se.kodhast.ui.components.SwitchRow
 import se.kodhast.ui.theme.Tone
 
@@ -374,7 +376,7 @@ fun DoseEditScreen(
                 subtitle = stringResource(R.string.dose_taken_help)
             )
         }
-        NoteCard(d.note, { note -> form.change(DoseField.NOTE) { it.copy(note = note) } }, error = error(DoseField.NOTE))
+        NoteCard(d.note, { note -> form.change(DoseField.NOTE) { it.copy(note = note) } }, error = error(DoseField.NOTE), maxLength = TextLimits.LONG)
     }
     asNeeded.cooldown?.let { CooldownDialog(it, asNeeded.onConfirmCooldown, asNeeded.onDismissCooldown) }
 }
@@ -398,7 +400,7 @@ private fun DayAndTime(form: EntryForm<Dose>, zone: TimeZone, reminders: Reminde
     if (timeShown) {
         DateTimeRow(date, form.value.shownTime(zone, reminders), onDate, { time -> form.change(DoseField.TAKEN_AT) { it.atTime(time, zone) } })
     } else {
-        DateField(stringResource(R.string.date), date, onDate)
+        DateField(stringResource(UiR.string.date), date, onDate)
     }
     error?.let { FieldError(it) }
 }
