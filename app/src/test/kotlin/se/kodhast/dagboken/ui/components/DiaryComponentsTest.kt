@@ -58,6 +58,7 @@ import se.kodhast.dagboken.core.model.SymptomScore
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.components.AppCalendar
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.ConfirmDialog
@@ -283,7 +284,7 @@ class DiaryComponentsTest {
     fun `kalendern - dagar med poster läses upp, tryck väljer dagen och pilarna byter månad`() {
         var picked by mutableStateOf<LocalDate?>(null)
         var month by mutableStateOf(LocalDate(2026, 10, 1))
-        show { DagbokenCalendar(month, { month = it }, setOf(LocalDate(2026, 10, 4)), picked, { picked = it }) }
+        show { AppCalendar(month, { month = it }, setOf(LocalDate(2026, 10, 4)), picked, { picked = it }) }
         rule.onNodeWithText("Oktober 2026").assertIsDisplayed()
         rule.onNodeWithContentDescription("sön 4 okt 2026, har poster")
             .assertTouchHeightIsEqualTo(48.dp)
@@ -302,7 +303,7 @@ class DiaryComponentsTest {
 
     @Test
     fun `kalendern läser idag och poster som datumremsan (HIST-6, HEM-14)`() {
-        show { DagbokenCalendar(LocalDate(2026, 10, 1), {}, setOf(LocalDate(2026, 10, 5)), LocalDate(2026, 10, 4), {}, today = LocalDate(2026, 10, 5)) }
+        show { AppCalendar(LocalDate(2026, 10, 1), {}, setOf(LocalDate(2026, 10, 5)), LocalDate(2026, 10, 4), {}, today = LocalDate(2026, 10, 5)) }
         rule.onNodeWithContentDescription("mån 5 okt 2026, idag, har poster").assertExists()
         rule.onNodeWithContentDescription("sön 4 okt 2026").assertIsSelected()
     }
@@ -310,7 +311,7 @@ class DiaryComponentsTest {
     @Test
     fun `kalendern tonar ner framtiden och den går inte att välja (HIST-6)`() {
         var picked by mutableStateOf<LocalDate?>(null)
-        show { DagbokenCalendar(LocalDate(2026, 10, 1), {}, emptySet(), picked, { picked = it }, today = LocalDate(2026, 10, 5), dimFuture = true) }
+        show { AppCalendar(LocalDate(2026, 10, 1), {}, emptySet(), picked, { picked = it }, today = LocalDate(2026, 10, 5), dimFuture = true) }
         rule.onNodeWithContentDescription("tis 6 okt 2026").assertIsNotEnabled().performClick()
         assertEquals(null, picked)
         rule.onNodeWithContentDescription("mån 5 okt 2026, idag").assertIsEnabled().performClick()
@@ -440,7 +441,7 @@ class DiaryComponentsTest {
     fun `kalenderns dagar har 48 dp tryckyta även på en 360 dp bred skärm (NFR-14)`() {
         show {
             Column(Modifier.padding(Spacing.l)) {
-                AppCard { DagbokenCalendar(LocalDate(2026, 10, 1), {}, emptySet(), null, {}) }
+                AppCard { AppCalendar(LocalDate(2026, 10, 1), {}, emptySet(), null, {}) }
             }
         }
         listOf("mån 5 okt 2026", "tis 6 okt 2026", "sön 11 okt 2026").forEach {

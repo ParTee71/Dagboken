@@ -173,26 +173,53 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun `kalendern – vald dag, dag utan poster, framtiden går inte att välja och punkterna följer filtret (HIST-6)`() = runTest(main.dispatcher) {
+    fun `Välj dag rullar till dagens första post, en dag utan poster till närmaste äldre, och punkterna följer filtret (HIST-6)`() = runTest(main.dispatcher) {
         seed()
         val vm = started(viewModel())
-        vm.onEvent(DiaryEvent.ShowView(DiaryView.CALENDAR))
-        assertEquals(listOf("episode-end:flu", "screening:s1", "dose:taken"), vm.ids, "idag är vald från början")
-        assertEquals(LocalDate(2026, 10, 1), vm.controls.value.month)
         assertEquals(setOf(today, yesterday, saturday), vm.controls.value.datesWithEntries)
+        assertEquals(null, vm.controls.value.jump)
 
-        vm.onEvent(DiaryEvent.SelectDate(saturday))
-        assertEquals(listOf("event:e1", "episode-start:flu"), vm.ids)
-        assertEquals(saturday, vm.controls.value.selected)
+        vm.onEvent(DiaryEvent.JumpTo(saturday))
+        runCurrent()
+        assertEquals("event:e1", vm.controls.value.jump?.key)
+        assertEquals(null, vm.controls.value.jump?.emptyDay, "dagen har poster")
+        assertEquals(7, vm.rows.size, "listan visar fortfarande alla dagar")
 
-        vm.onEvent(DiaryEvent.SelectDate(LocalDate(2026, 10, 4)))
-        assertEquals(listOf<DiaryRow>(DiaryRow.EmptyDay(LocalDate(2026, 10, 4), DayLabel.OTHER)), vm.rows)
+        vm.onEvent(DiaryEvent.JumpTo(LocalDate(2026, 10, 4)))
+        runCurrent()
+        assertEquals("event:e1", vm.controls.value.jump?.key, "en dag utan poster går till närmaste äldre dag")
+        assertEquals(LocalDate(2026, 10, 4), vm.controls.value.jump?.emptyDay, "och säger att den valda dagen saknar poster")
 
-        vm.onEvent(DiaryEvent.SelectDate(LocalDate(2026, 10, 7)))
-        assertEquals(LocalDate(2026, 10, 4), vm.controls.value.selected, "en dag i framtiden väljs inte")
+        vm.onEvent(DiaryEvent.Toggle(DiaryType.ACTIVITY))
+        runCurrent()
+        assertEquals(setOf(yesterday), vm.controls.value.datesWithEntries)
+        assertEquals(null, vm.controls.value.jump, "filterbytet släpper begäran")
+        vm.onEvent(DiaryEvent.JumpTo(LocalDate(2026, 10, 4)))
+        runCurrent()
+        assertEquals("activity:a1", vm.controls.value.jump?.key, "utan äldre dag för filtret: den äldsta dagen")
+    }
 
-        vm.onEvent(DiaryEvent.ShowView(DiaryView.LIST))
-        assertEquals(7, vm.rows.size, "listvyn visar alla dagar igen")
+    @Test
+    fun `listan släpper begäran när den rullat, samma dag igen ger en ny, och framtiden väljs inte (HIST-6)`() = runTest(main.dispatcher) {
+        seed()
+        val vm = started(viewModel())
+        vm.onEvent(DiaryEvent.JumpTo(yesterday))
+        runCurrent()
+        val first = vm.controls.value.jump
+        assertEquals("activity:a1", first?.key)
+        vm.onEvent(DiaryEvent.JumpDone)
+        runCurrent()
+        assertEquals(null, vm.controls.value.jump)
+
+        vm.onEvent(DiaryEvent.JumpTo(yesterday))
+        runCurrent()
+        assertEquals(first?.key, vm.controls.value.jump?.key)
+        assertTrue(vm.controls.value.jump != first, "en ny begäran för samma dag")
+
+        vm.onEvent(DiaryEvent.JumpDone)
+        vm.onEvent(DiaryEvent.JumpTo(LocalDate(2026, 10, 7)))
+        runCurrent()
+        assertEquals(null, vm.controls.value.jump, "en dag i framtiden väljs inte")
     }
 
     @Test
@@ -233,21 +260,22 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun `ett äldre år som läses visar laddning – inte en tom dag – och Visa äldre laddar (HIST-6, HIST-8)`() = runTest(main.dispatcher) {
+    fun `Välj dag i ett äldre år läser in året först och rullar när det kommit (HIST-6, HIST-8)`() = runTest(main.dispatcher) {
         seed()
         val held = MutableSharedFlow<List<Activity>>(replay = 1)
         holdOlder = held
         val vm = started(viewModel())
-        vm.onEvent(DiaryEvent.ShowView(DiaryView.CALENDAR))
-        vm.onEvent(DiaryEvent.SelectDate(lastYear))
+        vm.onEvent(DiaryEvent.JumpTo(lastYear))
         runCurrent()
-        assertEquals(listOf<DiaryRow>(DiaryRow.LoadingDay(lastYear, DayLabel.OTHER)), vm.rows)
+        assertEquals(2, vm.controls.value.years)
         assertTrue(vm.controls.value.loadingOlder)
+        assertEquals(null, vm.controls.value.jump, "ingen rullning innan året lästs")
 
         held.emit(listOf(old))
         runCurrent()
-        assertEquals(listOf("activity:old"), vm.ids)
         assertEquals(false, vm.controls.value.loadingOlder)
+        assertEquals("activity:old", vm.controls.value.jump?.key)
+        assertTrue("activity:old" in vm.ids)
     }
 
     @Test
@@ -260,15 +288,25 @@ class DiaryViewModelTest {
     }
 
     @Test
-    fun `en äldre månad i kalendern läser in åren som behövs (HIST-6, HIST-8)`() = runTest(main.dispatcher) {
+    fun `en Välj dag utan mål rullar inte senare av ett filterbyte (HIST-6, HIST-2)`() = runTest(main.dispatcher) {
+        val vm = started(viewModel())
+        vm.onEvent(DiaryEvent.JumpTo(today))
+        runCurrent()
+        assertEquals(null, vm.controls.value.jump, "inga poster – inget att rulla till")
+        vm.onEvent(DiaryEvent.Toggle(DiaryType.EVENT))
+        seed()
+        runCurrent()
+        assertEquals(null, vm.controls.value.jump, "filterbytet släppte begäran")
+    }
+
+    @Test
+    fun `Välj dag före allt som finns läser in åren och går till den äldsta dagen (HIST-6, HIST-8)`() = runTest(main.dispatcher) {
         seed()
         val vm = started(viewModel())
-        vm.onEvent(DiaryEvent.ShowView(DiaryView.CALENDAR))
-        vm.onEvent(DiaryEvent.ShowMonth(LocalDate(2025, 3, 1)))
-        assertEquals(2, vm.controls.value.years)
-        assertTrue(lastYear in vm.controls.value.datesWithEntries)
-        vm.onEvent(DiaryEvent.SelectDate(lastYear))
-        assertEquals(listOf("activity:old"), vm.ids)
+        vm.onEvent(DiaryEvent.JumpTo(LocalDate(2024, 9, 1)))
+        runCurrent()
+        assertEquals(3, vm.controls.value.years)
+        assertEquals("activity:old", vm.controls.value.jump?.key)
     }
 
     @Test

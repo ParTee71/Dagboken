@@ -34,10 +34,9 @@ import se.kodhast.dagboken.core.engine.DiarySources
 import se.kodhast.dagboken.core.engine.DiaryType
 import se.kodhast.dagboken.core.engine.DiaryWindow
 import se.kodhast.dagboken.core.engine.dates
-import se.kodhast.dagboken.core.engine.dayLabel
 import se.kodhast.dagboken.core.engine.diaryDays
 import se.kodhast.dagboken.core.engine.diaryEntries
-import se.kodhast.dagboken.core.engine.on
+import se.kodhast.dagboken.core.engine.jumpTarget
 import se.kodhast.dagboken.core.engine.shownBy
 import se.kodhast.dagboken.core.model.Checkin
 import se.kodhast.dagboken.core.model.OptionKind
@@ -61,10 +60,7 @@ import se.kodhast.ui.common.WriteFailures
 import se.kodhast.ui.common.screenSharing
 import se.kodhast.ui.common.toListUiState
 
-/** Listvy eller kalendervy (HIST-6). */
-enum class DiaryView { LIST, CALENDAR }
-
-/** En rad i Dagboken: en post under sin dag, eller – i kalendervyn – den valda dagen utan poster. */
+/** En rad i Dagboken: en post under sin dag. */
 sealed interface DiaryRow {
     val key: String
     val date: LocalDate
@@ -75,35 +71,25 @@ sealed interface DiaryRow {
         override val key: String get() = entry.id
         override val date: LocalDate get() = entry.date
     }
-
-    /** Den valda dagen i kalendervyn utan poster – en rad under kalendern, inte skärmens tomma tillstånd. */
-    data class EmptyDay(override val date: LocalDate, override val label: DayLabel) : DiaryRow {
-        override val key: String get() = "empty:$date"
-    }
-
-    /** Den valda dagen ligger i ett år som läses just nu (HIST-8). */
-    data class LoadingDay(override val date: LocalDate, override val label: DayLabel) : DiaryRow {
-        override val key: String get() = "loading:$date"
-    }
 }
 
 /**
- * Det som styr vyn: [filter] (HIST-2), [view] (HIST-6), kalenderns [month] (första dagen) och valda dag
- * [selected], dagarna med poster för filtret ([datesWithEntries], kalenderns punkter) och hur många år som
- * lästs ([years], HIST-8).
+ * Det som styr vyn: [filter] (HIST-2), dagarna med poster för filtret ([datesWithEntries], punkterna i Välj dag,
+ * HIST-6), hur många år som lästs ([years], HIST-8) och raden som listan ska rulla till ([jump], HIST-6).
  */
 @Immutable
 data class DiaryControls(
     val today: LocalDate,
     val filter: DiaryFilter = DiaryFilter(),
-    val view: DiaryView = DiaryView.LIST,
-    val month: LocalDate = LocalDate(today.year, today.month, 1),
-    val selected: LocalDate = today,
     val datesWithEntries: ImmutableSet<LocalDate> = persistentSetOf(),
     val years: Int = 1,
     /** Ett äldre år läses ("Visa äldre" visar laddning, HIST-8). */
-    val loadingOlder: Boolean = false
+    val loadingOlder: Boolean = false,
+    val jump: DiaryJump? = null
 )
+
+/** HIST-6: rulla listan till raden [key]; [serial] skiljer två val av samma dag åt; [emptyDay] är den valda dagen när den saknar poster. */
+data class DiaryJump(val key: String, val serial: Int, val emptyDay: LocalDate? = null)
 
 sealed interface DiaryEvent {
     /** Chippet "Alla" (HIST-2). */
@@ -112,13 +98,11 @@ sealed interface DiaryEvent {
     /** Ett typchip (HIST-2): [DiaryFilter.toggle]. */
     data class Toggle(val type: DiaryType) : DiaryEvent
 
-    data class ShowView(val view: DiaryView) : DiaryEvent
+    /** Välj dag (HIST-6): rulla till dagen – ett äldre år läses in först (HIST-8). */
+    data class JumpTo(val date: LocalDate) : DiaryEvent
 
-    /** En dag i kalendern; framtida dagar går inte att välja (HIST-6). */
-    data class SelectDate(val date: LocalDate) : DiaryEvent
-
-    /** Kalenderns månadsbyte – en äldre månad läser in så många år till som behövs (HIST-8). */
-    data class ShowMonth(val month: LocalDate) : DiaryEvent
+    /** Listan har rullat dit ([DiaryControls.jump]). */
+    data object JumpDone : DiaryEvent
 
     /** "Visa äldre" (HIST-8): ett år till. */
     data object ShowOlder : DiaryEvent
@@ -158,11 +142,10 @@ class DiaryViewModel @Inject constructor(
     private val anchor: LocalDate = clock.todayIn(zone.get())
 
     private val filter = MutableStateFlow(DiaryFilter())
-    private val view = MutableStateFlow(DiaryView.LIST)
 
-    /** `null` = idag (följer med över midnatt), respektive den valda dagens månad. */
-    private val selected = MutableStateFlow<LocalDate?>(null)
-    private val month = MutableStateFlow<LocalDate?>(null)
+    /** Dagen Välj dag gav och valets löpnummer; `null` när listan har rullat dit. */
+    private val jumpTo = MutableStateFlow<Pair<LocalDate, Int>?>(null)
+    private var jumps = 0
     private val years = MutableStateFlow(1)
 
     private val window: Flow<DiaryWindow> = combine(today, years) { today, years -> DiaryWindow(anchor, years, maxOf(today, anchor)) }.distinctUntilChanged()
@@ -226,36 +209,16 @@ class DiaryViewModel @Inject constructor(
         if (state is DetailUiState.Content) DetailUiState.Content(state.value.copy(entries = state.value.entries.shownBy(filter))) else state
     }.stateIn(viewModelScope, screenSharing(), DetailUiState.Loading)
 
-    private data class Choice(val view: DiaryView, val selected: LocalDate?, val today: LocalDate)
-
-    private val choice = combine(view, selected, today, ::Choice)
-
-    /** Listans tillstånd: laddning och fel ur läsningen, annars raderna för vyn. */
-    val state: StateFlow<ListUiState<DiaryRow>> = combine(filtered, choice) { state, choice ->
+    /** Listans tillstånd: laddning och fel ur läsningen, annars en rad per post under sin dag (HIST-1). */
+    val state: StateFlow<ListUiState<DiaryRow>> = combine(filtered, today) { state, today ->
         when (state) {
             DetailUiState.Loading -> ListUiState.Loading
             is DetailUiState.Error -> ListUiState.Error(state.error)
-            is DetailUiState.Content -> rows(state.value, choice).toListUiState()
+            is DetailUiState.Content -> rows(state.value, today).toListUiState()
         }
     }.stateIn(viewModelScope, screenSharing(), ListUiState.Loading)
 
-    private fun rows(timeline: Timeline, choice: Choice): List<DiaryRow> {
-        val today = choice.today
-        return when (choice.view) {
-            DiaryView.LIST -> diaryDays(timeline.entries, today).flatMap { day -> day.entries.map { row(it, day.label, timeline.names) } }
-
-            DiaryView.CALENDAR -> {
-                val day = choice.selected ?: today
-                val label = dayLabel(day, today)
-                if (day !in timeline.window) {
-                    // Ett äldre år som inte lästs än: laddning, inte "Inga poster".
-                    listOf(DiaryRow.LoadingDay(day, label))
-                } else {
-                    timeline.entries.on(day).map { row(it, label, timeline.names) }.ifEmpty { listOf(DiaryRow.EmptyDay(day, label)) }
-                }
-            }
-        }
-    }
+    private fun rows(timeline: Timeline, today: LocalDate): List<DiaryRow> = diaryDays(timeline.entries, today).flatMap { day -> day.entries.map { row(it, day.label, timeline.names) } }
 
     private fun row(entry: DiaryEntry, label: DayLabel, names: Map<String, String>): DiaryRow.Entry {
         val optionId = when (entry) {
@@ -266,25 +229,26 @@ class DiaryViewModel @Inject constructor(
         return DiaryRow.Entry(entry, label, optionId?.let(names::get))
     }
 
-    private data class Shown(val filter: DiaryFilter, val view: DiaryView, val selected: LocalDate?, val month: LocalDate?, val years: Int)
+    private data class Shown(val filter: DiaryFilter, val years: Int, val jumpTo: Pair<LocalDate, Int>?)
 
     /** Det som styr vyn, med kalenderns punkter ur samma filtrerade tidslinje som listan. */
     val controls: StateFlow<DiaryControls> = combine(
-        combine(filter, view, selected, month, years, ::Shown),
+        combine(filter, years, jumpTo, ::Shown),
         today,
         filtered
     ) { shown, today, filtered ->
-        val day = shown.selected ?: today
         val loaded = (filtered as? DetailUiState.Content)?.value
+        // Rullningen väntar tills dagens år är inläst; sedan dagens första post, eller närmaste äldre dag.
+        val jump = shown.jumpTo?.let { (date, serial) ->
+            loaded?.takeIf { it.window.years >= shown.years }?.let { jumpTarget(it.entries, date) }?.let { DiaryJump(it.id, serial, date.takeIf { day -> day != it.date }) }
+        }
         DiaryControls(
             today = today,
             filter = shown.filter,
-            view = shown.view,
-            month = shown.month ?: LocalDate(day.year, day.month, 1),
-            selected = day,
             datesWithEntries = loaded?.entries?.dates().orEmpty().toImmutableSet(),
             years = shown.years,
-            loadingOlder = loaded != null && loaded.window.years < shown.years
+            loadingOlder = loaded != null && loaded.window.years < shown.years,
+            jump = jump
         )
     }.stateIn(viewModelScope, screenSharing(), DiaryControls(anchor))
 
@@ -293,15 +257,13 @@ class DiaryViewModel @Inject constructor(
 
     fun onEvent(event: DiaryEvent) {
         when (event) {
-            DiaryEvent.ShowAll -> filter.value = filter.value.showAll()
+            DiaryEvent.ShowAll -> setFilter(filter.value.showAll())
 
-            is DiaryEvent.Toggle -> filter.value = filter.value.toggle(event.type)
+            is DiaryEvent.Toggle -> setFilter(filter.value.toggle(event.type))
 
-            is DiaryEvent.ShowView -> view.value = event.view
+            is DiaryEvent.JumpTo -> jumpTo(event.date)
 
-            is DiaryEvent.SelectDate -> selectDate(event.date)
-
-            is DiaryEvent.ShowMonth -> showMonth(event.month)
+            DiaryEvent.JumpDone -> jumpTo.value = null
 
             DiaryEvent.ShowOlder -> years.value += 1
 
@@ -317,17 +279,17 @@ class DiaryViewModel @Inject constructor(
         }
     }
 
-    private fun selectDate(date: LocalDate) {
-        val today = clock.todayIn(zone.get())
-        if (date > today) return
-        selected.value = date.takeIf { it != today }
-        month.value = null
-        cover(date)
+    /** Ett nytt filter släpper en väntande Välj dag – listan rullar aldrig av ett filterbyte. */
+    private fun setFilter(value: DiaryFilter) {
+        jumpTo.value = null
+        filter.value = value
     }
 
-    private fun showMonth(first: LocalDate) {
-        month.value = first
-        cover(first)
+    /** HIST-6: framtida dagar går inte att välja; ett äldre år läses in först (HIST-8). */
+    private fun jumpTo(date: LocalDate) {
+        if (date > clock.todayIn(zone.get())) return
+        cover(date)
+        jumpTo.value = date to ++jumps
     }
 
     /** HIST-8: läser in så många år till att [date] ryms – aldrig färre än nu. */

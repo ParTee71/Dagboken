@@ -3,7 +3,6 @@ package se.kodhast.dagboken.ui.diary
 import android.content.res.Resources
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -12,8 +11,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.selected
-import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.datetime.LocalDate
@@ -33,7 +30,6 @@ import se.kodhast.dagboken.ui.common.nonBlank
 import se.kodhast.dagboken.ui.common.scaleLevel
 import se.kodhast.dagboken.ui.common.scaleValueText
 import se.kodhast.dagboken.ui.common.title
-import se.kodhast.dagboken.ui.components.DagbokenCalendar
 import se.kodhast.dagboken.ui.components.DagbokenEntryCard
 import se.kodhast.dagboken.ui.components.FeelingExtras
 import se.kodhast.dagboken.ui.theme.Neutral
@@ -42,21 +38,17 @@ import se.kodhast.ui.common.DateFormat
 import se.kodhast.ui.common.ListUiState
 import se.kodhast.ui.common.UiError
 import se.kodhast.ui.components.AppButton
-import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppFilterChip
-import se.kodhast.ui.components.AppIconButton
-import se.kodhast.ui.components.AppLoading
 import se.kodhast.ui.components.ArchiveEvent
 import se.kodhast.ui.components.ButtonVariant
 import se.kodhast.ui.components.ChipRow
+import se.kodhast.ui.components.DayPicker
 import se.kodhast.ui.components.EmptyContent
-import se.kodhast.ui.components.EmptyState
 import se.kodhast.ui.components.EntityListScreen
-import se.kodhast.ui.components.IconButtonVariant
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ListArchive
 import se.kodhast.ui.components.ListGroup
-import se.kodhast.ui.theme.Spacing
+import se.kodhast.ui.components.ListScrollRequest
 import se.kodhast.ui.theme.Tone
 
 @Composable
@@ -71,10 +63,9 @@ fun DiaryRoute(
 }
 
 /**
- * Fliken Dagbok (HIST-1…HIST-9) på `EntityListScreen`: sidhuvudet (NAV-12) med Listvy och Kalendervy (den valda
- * markerad) före avataren, som övriga flikar; filterchipsen (HIST-2) står fast under rubriken i alla
- * lägen. Listvyn har en rubrik per dag och "Visa äldre" sist (HIST-8); kalendervyn har kalendern överst och
- * den valda dagens poster under (HIST-6). Posterna är postkort (NFR-15/16) – tryck öppnar ([onOpen]),
+ * Fliken Dagbok (HIST-1…HIST-9) på `EntityListScreen`: sidhuvudet (NAV-12) som övriga flikar; Välj dag och
+ * filterchipsen (HIST-6, HIST-2) står fast under rubriken i alla lägen. Listan har en rubrik per dag och "Visa
+ * äldre" sist (HIST-8); Välj dag rullar till den valda dagen ([DiaryControls.jump]). Posterna är postkort (NFR-15/16) – tryck öppnar ([onOpen]),
  * Redigera och Ta bort i menyn, svep begär radering. Ingen lägg till: plusknappen i verktygsraden loggar.
  */
 @Composable
@@ -94,7 +85,9 @@ fun DiaryScreen(
         }
         group
     }
-    val calendar = controls.view == DiaryView.CALENDAR
+    // En ny begäran per val (också samma dag igen); listan släpper den när den rullat dit.
+    val emptyDay = controls.jump?.emptyDay?.let { stringResource(R.string.diary_jump_empty_day, DateFormat.weekdayDayAndMonth(it, withYear = it.year != controls.today.year)) }
+    val scrollTo = remember(controls.jump) { controls.jump?.let { ListScrollRequest(it.key, emptyDay) } }
     EntityListScreen(
         title = stringResource(R.string.tab_diary),
         state = state,
@@ -104,18 +97,13 @@ fun DiaryScreen(
         onRetry = { onEvent(DiaryEvent.Retry) },
         group = dayGroup,
         archive = ListArchive(error = failure, showToggle = false) { if (it == ArchiveEvent.ErrorShown) onEvent(DiaryEvent.ErrorShown) },
-        actions = {
-            ViewButton(DiaryView.LIST, controls.view, R.drawable.ic_list, R.string.diary_view_list, onEvent)
-            ViewButton(DiaryView.CALENDAR, controls.view, R.drawable.ic_calendar, R.string.diary_view_calendar, onEvent)
-        },
         filter = { FilterChips(controls, onEvent) },
-        header = if (calendar) ({ Calendar(controls, onEvent) }) else null,
-        footer = if (calendar) null else ({ ShowOlder(controls.years, controls.loadingOlder, onEvent) })
+        footer = { ShowOlder(controls.years, controls.loadingOlder, onEvent) },
+        scrollTo = scrollTo,
+        onScrolled = { onEvent(DiaryEvent.JumpDone) }
     ) { row ->
         when (row) {
             is DiaryRow.Entry -> EntryCard(row, onEvent, onOpen)
-            is DiaryRow.LoadingDay -> AppLoading(Modifier.padding(vertical = Spacing.xl))
-            is DiaryRow.EmptyDay -> EmptyState(R.drawable.ic_calendar, stringResource(R.string.diary_day_empty_title), stringResource(R.string.diary_day_empty_message))
         }
     }
 }
@@ -127,24 +115,12 @@ private fun dayTitle(row: DiaryRow, today: LocalDate, resources: Resources): Str
     DayLabel.OTHER -> DateFormat.dayAndMonth(row.date, withYear = row.date.year != today.year)
 }
 
-/** Listvy/Kalendervy i toppraden: den valda tonad och läst som vald (HIST-6). */
-@Composable
-private fun ViewButton(view: DiaryView, current: DiaryView, icon: Int, @StringRes label: Int, onEvent: (DiaryEvent) -> Unit) {
-    val chosen = view == current
-    AppIconButton(
-        icon,
-        stringResource(label),
-        { onEvent(DiaryEvent.ShowView(view)) },
-        Modifier.semantics { selected = chosen },
-        variant = if (chosen) IconButtonVariant.Tonal else IconButtonVariant.Plain
-    )
-}
-
 /** HIST-2: Alla först, sedan en per typ; en typ är markerad bara när inte alla visas. Raden bryts (som 3.x). */
 @Composable
 private fun FilterChips(controls: DiaryControls, onEvent: (DiaryEvent) -> Unit) {
     val filter = controls.filter
     ChipRow {
+        DayPicker(controls.datesWithEntries, controls.today, { onEvent(DiaryEvent.JumpTo(it)) })
         AppFilterChip(stringResource(R.string.diary_filter_all), filter.showsAll, { onEvent(DiaryEvent.ShowAll) })
         DiaryType.entries.forEach { type ->
             AppFilterChip(stringResource(type.chip), !filter.showsAll && filter.shows(type), { onEvent(DiaryEvent.Toggle(type)) })
@@ -188,22 +164,6 @@ private fun emptyContent(controls: DiaryControls): EmptyContent {
         )
 
         else -> EmptyContent(R.drawable.ic_book, stringResource(R.string.diary_empty_title), stringResource(R.string.diary_empty_selected_message, period))
-    }
-}
-
-/** HIST-6: kalendern med punkter för filtrets dagar, idag med ring och framtiden nedtonad. */
-@Composable
-private fun Calendar(controls: DiaryControls, onEvent: (DiaryEvent) -> Unit) {
-    AppCard {
-        DagbokenCalendar(
-            month = controls.month,
-            onMonthChange = { onEvent(DiaryEvent.ShowMonth(it)) },
-            datesWithEntries = controls.datesWithEntries,
-            selectedDate = controls.selected,
-            onDateClick = { onEvent(DiaryEvent.SelectDate(it)) },
-            today = controls.today,
-            dimFuture = true
-        )
     }
 }
 

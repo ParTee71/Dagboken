@@ -250,18 +250,6 @@ private fun Diary() {
     TypeChoiceField(GALLERY_TYPES, type, { type = it }, otherLabel = "Övrigt")
     var unit by remember { mutableStateOf("mg") }
     UnitChoice(unit, { unit = it })
-    var month by remember { mutableStateOf(LocalDate(2026, 10, 1)) }
-    var picked by remember { mutableStateOf<LocalDate?>(LocalDate(2026, 10, 4)) }
-    AppCard {
-        DagbokenCalendar(
-            month,
-            { month = it },
-            setOf(LocalDate(2026, 10, 1), LocalDate(2026, 10, 2), LocalDate(2026, 10, 4)),
-            picked,
-            { picked = it },
-            today = LocalDate(2026, 10, 5)
-        )
-    }
     Label("StepwiseScreeningForm")
     var energy by remember { mutableIntStateOf(6) }
     var screeningFeelings by remember { mutableStateOf(emptyList<Feeling>()) }

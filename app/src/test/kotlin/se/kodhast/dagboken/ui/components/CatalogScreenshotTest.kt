@@ -507,35 +507,6 @@ class CatalogScreenshotTest {
                 }
             }
         }
-        captureLightAndDark("DagbokenCalendar_oktober") {
-            Sheet {
-                AppCard {
-                    DagbokenCalendar(
-                        LocalDate(2026, 10, 1),
-                        {},
-                        setOf(LocalDate(2026, 10, 1), LocalDate(2026, 10, 2), LocalDate(2026, 10, 4), LocalDate(2026, 10, 12)),
-                        LocalDate(2026, 10, 4),
-                        {},
-                        today = LocalDate(2026, 10, 5)
-                    )
-                }
-            }
-        }
-        captureLightAndDark("DagbokenCalendar_framtid_nedtonad") {
-            Sheet {
-                AppCard {
-                    DagbokenCalendar(
-                        LocalDate(2026, 10, 1),
-                        {},
-                        setOf(LocalDate(2026, 10, 1), LocalDate(2026, 10, 3), LocalDate(2026, 10, 5)),
-                        LocalDate(2026, 10, 3),
-                        {},
-                        today = LocalDate(2026, 10, 5),
-                        dimFuture = true
-                    )
-                }
-            }
-        }
         captureLightAndDark("StepwiseScreeningForm_forsta_steget") {
             Sheet { AppCard { StepwiseScreeningForm(6, {}, emptyList(), {}, 4, {}, GALLERY_SYMPTOMS, emptyList(), {}, onSave = {}) } }
         }
