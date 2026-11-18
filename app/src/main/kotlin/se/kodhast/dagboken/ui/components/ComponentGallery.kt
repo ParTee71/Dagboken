@@ -156,6 +156,10 @@ import se.kodhast.ui.components.UndoRequest
 import se.kodhast.ui.components.UndoSnackbar
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.components.longPress
+import se.kodhast.ui.components.AboutCard
+import se.kodhast.ui.components.AccountRow
+import se.kodhast.ui.components.NoticeBanner
+import se.kodhast.ui.components.SignOutRow
 
 /**
  * Alla komponenter och ramar på en skärm, med riktiga svenska texter (skill
@@ -279,9 +283,14 @@ private fun Rows() {
             FavoriteMark()
         }
     }
-    NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {})
+    NoticeBanner("Kåvepenin slutar i morgon. Höjningen av Sertralin slutar i morgon – sedan 50 mg.", R.drawable.ic_bell, {}, tone = Tone.Warning)
     NoticeBanner("Health Connect kopplad", R.drawable.ic_watch, onClick = null, tone = Tone.Positive, detail = "Steg, puls, sömn och sömnkvalitet visas här.")
-    NoticeBanner("Health Connect saknas", R.drawable.ic_watch, {}, detail = "Installera Health Connect från Play Butik för att se klockans data.", action = "Installera")
+    NoticeBanner("Health Connect saknas", R.drawable.ic_watch, {}, detail = "Installera Health Connect från Play Butik för att se klockans data.", action = "Installera", tone = Tone.Warning)
+    AppCard {
+        AccountRow("Anna Berg", "anna.berg@exempel.se", photoUrl = null)
+        SignOutRow(stringResource(R.string.app_name), {})
+    }
+    AboutCard(stringResource(R.string.app_name), "4.18.3 (bygge 111)")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
         InfoPill("Mediciner")
         InfoPill("Klar", tone = Tone.Positive)

@@ -16,7 +16,6 @@ import se.kodhast.dagboken.core.model.SleepStages
 import se.kodhast.dagboken.data.health.HealthStatus
 import se.kodhast.dagboken.ui.common.durationText
 import se.kodhast.dagboken.ui.common.label
-import se.kodhast.dagboken.ui.components.NoticeBanner
 import se.kodhast.dagboken.ui.components.StatPill
 import se.kodhast.dagboken.ui.diagram.CHART_SEPARATOR
 import se.kodhast.dagboken.ui.theme.AppTypography
@@ -24,6 +23,7 @@ import se.kodhast.dagboken.ui.theme.Neutral
 import se.kodhast.dagboken.ui.theme.Positive
 import se.kodhast.dagboken.ui.theme.Sun
 import se.kodhast.dagboken.ui.theme.Warning
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
@@ -132,7 +132,7 @@ internal fun SleepFlagNotices(flags: List<SleepFlag>) {
             SleepFlag.LOW_OXYGEN_SATURATION -> R.drawable.ic_oxygen
             SleepFlag.ELEVATED_SLEEPING_HEART_RATE -> R.drawable.ic_heart
         }
-        NoticeBanner(stringResource(flag.label()), icon, onClick = null, Modifier.fillMaxWidth())
+        NoticeBanner(stringResource(flag.label()), icon, onClick = null, Modifier.fillMaxWidth(), tone = Tone.Warning)
     }
 }
 

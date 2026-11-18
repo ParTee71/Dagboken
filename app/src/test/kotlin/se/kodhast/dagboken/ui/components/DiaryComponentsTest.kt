@@ -57,16 +57,19 @@ import se.kodhast.dagboken.core.model.OptionKind
 import se.kodhast.dagboken.core.model.SymptomScore
 import se.kodhast.dagboken.ui.theme.AppColors
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
+import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.ConfirmDialog
 import se.kodhast.ui.components.DeleteAction
 import se.kodhast.ui.components.Foldout
 import se.kodhast.ui.components.InfoPill
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.QuantityStepper
 import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.theme.Spacing
+import se.kodhast.ui.theme.Tone
 
 /**
  * Beteende och tillgänglighet för Dagbokens portade komponenter (etapp 4.1). Postkortets gestmönster
@@ -457,7 +460,7 @@ class DiaryComponentsTest {
     @Test
     fun `NoticeBanner med åtgärd men utan onClick fäller också`() {
         kotlin.test.assertFailsWith<IllegalArgumentException> {
-            show { NoticeBanner("Health Connect saknas", se.kodhast.dagboken.R.drawable.ic_watch, onClick = null, action = "Installera") }
+            show { NoticeBanner("Health Connect saknas", se.kodhast.dagboken.R.drawable.ic_watch, onClick = null, action = "Installera", tone = Tone.Warning) }
         }
     }
 

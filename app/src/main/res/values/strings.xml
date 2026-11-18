@@ -325,11 +325,7 @@
 
     <!-- Inställningsarket bakom avataren (NAV-9) -->
     <string name="account_title">Inställningar</string>
-    <string name="sign_out">Logga ut</string>
-    <string name="sign_out_title">Logga ut?</string>
-    <string name="sign_out_message">Din dagbok finns kvar i ditt konto och kommer tillbaka när du loggar in igen.</string>
     <string name="component_gallery">Komponentgalleri</string>
-    <string name="account_signed_in_google">Inloggad med Google</string>
     <string name="settings_profile">Profil</string>
     <string name="settings_reminders">Påminnelser</string>
     <string name="settings_theme">Tema</string>
@@ -678,7 +674,6 @@
 
 
     <!-- Om Dagboken -->
-    <string name="about_version">Version</string>
     <string name="about_build_format">%1$s (bygge %2$d)</string>
     <string name="about_licenses">Licenser</string>
     <string name="about_fonts">Typsnitten Fraunces och Figtree · SIL Open Font License 1.1</string>

@@ -61,7 +61,8 @@ class AppSheetsTest {
         var dismissed = 0
         show(RootSheet.Account, onDismiss = { dismissed++ }, onOpen = { opened += it })
         rule.onNodeWithText("Anna Berg").assertIsDisplayed()
-        rule.onNodeWithText("anna.berg@exempel.se\nInloggad med Google").assertIsDisplayed()
+        rule.onNodeWithText("anna.berg@exempel.se").assertIsDisplayed()
+        rule.onNodeWithText("Inloggad med Google").assertDoesNotExist()
         labels.forEach { rule.onNodeWithText(it).performClick() }
         assertEquals(SettingsPage.entries.toList(), opened)
         assertEquals(labels.size, dismissed, "varje val stänger arket först")

@@ -72,8 +72,8 @@ import se.kodhast.dagboken.ui.common.rulesValidator
 import se.kodhast.dagboken.ui.common.title
 import se.kodhast.dagboken.ui.components.DateTimeRow
 import se.kodhast.dagboken.ui.components.NoteCard
-import se.kodhast.dagboken.ui.components.NoticeBanner
 import se.kodhast.dagboken.ui.components.UnitChoice
+import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.common.EditorState
 import se.kodhast.ui.common.Validator
 import se.kodhast.ui.components.AppCard
@@ -83,7 +83,9 @@ import se.kodhast.ui.components.DateField
 import se.kodhast.ui.components.FieldError
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.SwitchRow
+import se.kodhast.ui.theme.Tone
 
 /** Fälten i formuläret – codecens namn, så att rules-felen ([rulesValidator]) hamnar på rätt fält. */
 object DoseField {
@@ -419,8 +421,8 @@ private fun DoseFields(form: EntryForm<Dose>, error: (String) -> String?) {
 private fun AsNeededNotice(asNeeded: AsNeededState) {
     val medicine = asNeeded.medicine ?: return
     when (val check = asNeeded.check) {
-        is PrnCheck.Cooldown -> NoticeBanner(cooldownText(R.string.dose_cooldown_notice, CooldownPrompt(medicine, check.remaining)), R.drawable.ic_clock, onClick = null)
-        PrnCheck.DailyLimitReached -> NoticeBanner(stringResource(R.string.today_limit_reached_format, medicine.maxPerDay, medicine.displayName), R.drawable.ic_info, onClick = null)
+        is PrnCheck.Cooldown -> NoticeBanner(cooldownText(R.string.dose_cooldown_notice, CooldownPrompt(medicine, check.remaining)), R.drawable.ic_clock, onClick = null, tone = Tone.Warning)
+        PrnCheck.DailyLimitReached -> NoticeBanner(stringResource(R.string.today_limit_reached_format, medicine.maxPerDay, medicine.displayName), R.drawable.ic_info, onClick = null, tone = Tone.Warning)
         PrnCheck.Allowed, null -> Unit
     }
 }

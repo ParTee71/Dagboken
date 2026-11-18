@@ -1,8 +1,5 @@
 package se.kodhast.dagboken.ui.settings
 
-import android.Manifest
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,16 +28,14 @@ import se.kodhast.dagboken.core.model.ReminderSettings
 import se.kodhast.dagboken.core.model.SlotReminder
 import se.kodhast.dagboken.data.repository.SettingsRepository
 import se.kodhast.dagboken.reminders.ReminderAccess
-import se.kodhast.dagboken.reminders.needsNotificationPermission
 import se.kodhast.dagboken.reminders.openExactAlarmSettings
 import se.kodhast.dagboken.reminders.openFullScreenIntentSettings
-import se.kodhast.dagboken.reminders.openNotificationSettings
 import se.kodhast.dagboken.reminders.reminderAccess
 import se.kodhast.dagboken.ui.common.formatDuration
 import se.kodhast.dagboken.ui.common.label
-import se.kodhast.dagboken.ui.components.NoticeBanner
 import se.kodhast.dagboken.ui.components.ReminderTimeRow
 import se.kodhast.dagboken.ui.components.ValueSlider
+import se.kodhast.dagboken.ui.theme.Warning
 import se.kodhast.ui.common.EditorEvents
 import se.kodhast.ui.common.EditorState
 import se.kodhast.ui.common.EditorUiState
@@ -48,7 +43,10 @@ import se.kodhast.ui.common.Validator
 import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.EntityEditScreen
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.SwitchRow
+import se.kodhast.ui.components.rememberNotificationAccess
+import se.kodhast.ui.theme.Tone
 
 sealed interface RemindersEvent {
     data class MedsEnabledChanged(val enabled: Boolean) : RemindersEvent
@@ -115,28 +113,29 @@ class RemindersEditViewModel @Inject constructor(settings: SettingsRepository) :
 
 /**
  * NOT-16: behörigheterna läses när skärmen visas och igen när användaren kommer tillbaka från systeminställningarna;
- * notisbehörigheten begärs när en påminnelse slås på ([turnsOn]) – inte vid appens första start.
+ * notisbehörigheten (android-ui:s `rememberNotificationAccess`) begärs när en påminnelse slås på ([turnsOn]) – inte vid
+ * appens första start.
  */
 @Composable
 fun RemindersRoute(onClose: () -> Unit, viewModel: RemindersEditViewModel = hiltViewModel()) {
     val state by viewModel.editor.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var access by remember { mutableStateOf(context.reminderAccess()) }
+    val notifications = rememberNotificationAccess()
+    var system by remember { mutableStateOf(context.reminderAccess()) }
     LifecycleResumeEffect(context) {
-        access = context.reminderAccess()
+        system = context.reminderAccess()
         onPauseOrDispose {}
     }
-    val requestPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { access = context.reminderAccess() }
     RemindersScreen(
         state,
         viewModel.editor,
         onEvent = { event ->
-            if (event.turnsOn(state.value) && context.needsNotificationPermission()) requestPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            if (event.turnsOn(state.value)) notifications.ask()
             viewModel.onEvent(event)
         },
         onClose = onClose,
-        access = access,
-        onOpenNotificationSettings = context::openNotificationSettings,
+        access = system.copy(notifications = notifications.allowed),
+        onOpenNotificationSettings = notifications.openSettings,
         onOpenExactAlarmSettings = context::openExactAlarmSettings,
         onOpenFullScreenSettings = context::openFullScreenIntentSettings
     )
@@ -178,7 +177,8 @@ fun RemindersScreen(
                 R.drawable.ic_bell,
                 onOpenNotificationSettings,
                 onClickLabel = stringResource(R.string.reminders_open_system_settings),
-                detail = stringResource(R.string.reminders_notifications_off_detail)
+                detail = stringResource(R.string.reminders_notifications_off_detail),
+                tone = Tone.Warning
             )
         }
         if (!access.exactAlarms) {
@@ -187,7 +187,8 @@ fun RemindersScreen(
                 R.drawable.ic_clock,
                 onOpenExactAlarmSettings,
                 onClickLabel = stringResource(R.string.reminders_open_system_settings),
-                detail = stringResource(R.string.reminders_exact_off_detail)
+                detail = stringResource(R.string.reminders_exact_off_detail),
+                tone = Tone.Warning
             )
         }
         AppCard {
@@ -249,7 +250,8 @@ private fun MomentSection(reminders: ReminderSettings, access: ReminderAccess, o
                 R.drawable.ic_bell,
                 onOpenFullScreenSettings,
                 onClickLabel = stringResource(R.string.reminders_open_system_settings),
-                detail = stringResource(R.string.reminders_full_screen_off_detail)
+                detail = stringResource(R.string.reminders_full_screen_off_detail),
+                tone = Tone.Warning
             )
         }
         AppCard {

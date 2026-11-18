@@ -12,7 +12,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import se.kodhast.dagboken.R
-import se.kodhast.dagboken.ui.components.NoticeBanner
 import se.kodhast.dagboken.ui.importing.ChoiceRow
 import se.kodhast.dagboken.ui.importing.ImportEvent
 import se.kodhast.dagboken.ui.importing.ImportStage
@@ -26,6 +25,7 @@ import se.kodhast.ui.components.AppCard
 import se.kodhast.ui.components.AppDivider
 import se.kodhast.ui.components.EntityDetailScreen
 import se.kodhast.ui.components.MessageSnackbar
+import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.theme.Tone
 
 /** Export och import med sin ViewModel (SET-8, NAV-9). */
