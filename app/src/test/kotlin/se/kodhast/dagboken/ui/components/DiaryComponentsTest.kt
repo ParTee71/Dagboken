@@ -1,7 +1,11 @@
 package se.kodhast.dagboken.ui.components
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -22,6 +26,8 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
@@ -29,6 +35,7 @@ import androidx.compose.ui.test.assertTouchWidthIsEqualTo
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -43,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.junit.Rule
@@ -73,6 +81,7 @@ import se.kodhast.ui.components.QuantityStepper
 import se.kodhast.ui.components.ReminderTimeRow
 import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.StatPill
+import se.kodhast.ui.components.StepNavigation
 import se.kodhast.ui.components.inactive
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
@@ -434,6 +443,45 @@ class DiaryComponentsTest {
         rule.onNodeWithText("Steg 3 av 4").assertIsDisplayed()
         rule.onNodeWithText("Nästa").performClick()
         rule.onNodeWithText("Steg 4 av 4").assertIsDisplayed()
+    }
+
+    /**
+     * #453: som i måendearket rullar formuläret i en förälder med en egen scroll och knapparna står utanför den
+     * (`AppBottomSheet(footer)`). Höjden är så liten att inte heller energisteget får plats – som med tangentbordet
+     * uppe – annars klämmer scrollen sig själv till toppen och testet säger ingenting.
+     */
+    @Test
+    fun `mående i steg - ett stegbyte visar steget från toppen och släpper kommentarsfältets fokus (SCR-7)`() {
+        var feelings by mutableStateOf(listOf(Feeling("calm")))
+        var notes by mutableStateOf(emptyMap<Feeling, String>())
+        val scroll = ScrollState(0)
+        show {
+            val steps = rememberStepwiseScreeningState(symptoms)
+            Column {
+                Column(Modifier.height(120.dp).verticalScroll(scroll)) {
+                    StepwiseScreeningForm(
+                        5, {}, feelings, { feelings = it }, 3, {}, symptoms, emptyList(), {}, onSave = {},
+                        state = steps,
+                        navigation = false,
+                        feelingExtras = FeelingExtras(noteOf = { notes[it].orEmpty() }, onNoteChange = { f, n -> notes = notes + (f to n) })
+                    )
+                }
+                Row { StepNavigation(steps.pager, {}) }
+            }
+        }
+        // Knappen ligger långt under synfältet; trycket görs semantiskt i stället för att först rulla dit.
+        rule.onNodeWithText("Lägg till varför").performSemanticsAction(SemanticsActions.OnClick)
+        rule.onNodeWithContentDescription("Kommentar till Lugn").assertIsFocused().performTextReplacement("Promenad i solen")
+        rule.runOnIdle { runBlocking { scroll.scrollTo(scroll.maxValue) } }
+        rule.onNodeWithText("Steg 1 av 4").assertIsNotDisplayed()
+
+        rule.onNodeWithText("Nästa").performClick()
+        rule.onNodeWithText("Steg 2 av 4").assertIsDisplayed()
+        rule.onAllNodes(isFocused()).assertCountEquals(0)
+
+        rule.runOnIdle { runBlocking { scroll.scrollTo(scroll.maxValue) } }
+        rule.onNodeWithText("Föregående").performClick()
+        rule.onNodeWithText("Steg 1 av 4").assertIsDisplayed()
     }
 
     @Test
