@@ -32,7 +32,9 @@ private fun String.toScreamingSnake() = replace(Regex("([a-z])([A-Z])"), "$1_$2"
 
 android {
     namespace = "se.kodhast.dagboken"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) { minorApiLevel = 1 }
+    }
 
     defaultConfig {
         // Appens id i Play och på telefonen byts inte med paketnamnet (claude-android #80): ett nytt id

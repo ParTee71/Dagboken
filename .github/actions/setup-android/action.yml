@@ -22,10 +22,13 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        sdk="$(grep -oE 'compileSdk = [0-9]+' app/build.gradle.kts | grep -oE '[0-9]+')"
+        # compileSdk { version = release(37) { minorApiLevel = 1 } } → plattformen android-37.1
+        major="$(grep -oE 'release\([0-9]+\)' app/build.gradle.kts | grep -oE '[0-9]+')"
+        minor="$(grep -oE 'minorApiLevel = [0-9]+' app/build.gradle.kts | grep -oE '[0-9]+$' || true)"
+        sdk="$major${minor:+.$minor}"
         if [ ! -d "$ANDROID_HOME/platforms/android-$sdk" ] && [ ! -d "$ANDROID_HOME/platforms/android-$sdk.0" ]; then
           sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          "$sdkmanager" "platforms;android-$sdk.0" > /dev/null || "$sdkmanager" "platforms;android-$sdk" > /dev/null
+          "$sdkmanager" "platforms;android-$sdk" > /dev/null || "$sdkmanager" "platforms;android-$sdk.0" > /dev/null
         fi
 
     - name: Cache för Robolectrics SDK-jar
