@@ -9,6 +9,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.StateFlow
+import se.kodhast.dagboken.BuildConfig
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.dagboken.ui.theme.applySystemBars
 
@@ -23,6 +24,6 @@ fun ComponentActivity.setDagbokenContent(theme: StateFlow<AppTheme>, lightSystem
         val chosen by theme.collectAsStateWithLifecycle()
         val dark = chosen.isDark(isSystemInDarkTheme())
         LaunchedEffect(dark, lightSystemBarIcons) { applySystemBars(dark || lightSystemBarIcons) }
-        DagbokenTheme(darkTheme = dark, content = content)
+        DagbokenTheme(darkTheme = dark, appVersion = BuildConfig.VERSION_NAME, content = content)
     }
 }

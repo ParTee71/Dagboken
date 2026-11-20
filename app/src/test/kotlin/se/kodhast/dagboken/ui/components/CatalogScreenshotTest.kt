@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -46,6 +47,7 @@ import se.kodhast.ui.components.AppFilterChip
 import se.kodhast.ui.components.AppFloatingToolbar
 import se.kodhast.ui.components.AppHeader
 import se.kodhast.ui.components.AppIconButton
+import se.kodhast.ui.components.AppIdentity
 import se.kodhast.ui.components.AppMenu
 import se.kodhast.ui.components.AppMenuItem
 import se.kodhast.ui.components.AppSegmentedChoice
@@ -69,6 +71,7 @@ import se.kodhast.ui.components.IconButtonVariant
 import se.kodhast.ui.components.InfoPill
 import se.kodhast.ui.components.ItemRow
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.LocalAppIdentity
 import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.components.NoticeBanner
 import se.kodhast.ui.components.PausableRow
@@ -359,6 +362,19 @@ class CatalogScreenshotTest {
                     subtitle = "God kväll · tisdag 17 november · vecka 47",
                     account = { UserAvatar(AuthUser("galleri", "Anna Berg"), {}, online = true) }
                 )
+            }
+        }
+        // Med versionen (NAV-12): DagbokenTheme(appVersion) i appen; här sätts identiteten direkt så att bilden bär ett påhittat nummer.
+        captureLightAndDark("AppHeader_vila_version") {
+            CompositionLocalProvider(LocalAppIdentity provides AppIdentity(R.drawable.ic_app_header, "Dagboken", "4.20.0")) {
+                Column(Modifier.background(MaterialTheme.colorScheme.background)) {
+                    AppHeader(
+                        "Idag",
+                        TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
+                        subtitle = "God kväll · tisdag 17 november · vecka 47",
+                        account = { UserAvatar(AuthUser("galleri", "Anna Berg"), {}, online = true) }
+                    )
+                }
             }
         }
         val tabs = listOf(

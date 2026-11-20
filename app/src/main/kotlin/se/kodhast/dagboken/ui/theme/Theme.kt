@@ -35,10 +35,13 @@ import se.kodhast.ui.theme.Spacing
  * hästen i fullstora tomma lägen – ritade i appens färger. Appens identitet (`LocalAppIdentity`: ikonen och namnet) ger
  * flikarna Kodhäst-sidhuvudet (NAV-12), med prickarna före rubriken som synkläget (NFR-22). Djupet (DSN-1) kommer från [AppColors.lightDepth] och
  * [AppColors.darkDepth]: knappar, kort och det valda får ljuskant, skimmer och tonad skugga och sjunker in vid tryck.
+ * [appVersion] är versionen som står litet efter appnamnet i sidhuvudet (NAV-12); appens aktiviteter skickar `BuildConfig.VERSION_NAME`
+ * (`setDagbokenContent`), medan skärmdumpar och prov lämnar den tom så att de inte bär versionsnumret.
  */
 @Composable
 fun DagbokenTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    appVersion: String? = null,
     content: @Composable () -> Unit
 ) {
     CompositionLocalProvider(
@@ -48,7 +51,7 @@ fun DagbokenTheme(
         LocalDetailSectionGap provides Spacing.l,
         LocalQuantityStepperButtonSize provides QuantityStepperDefaults.TouchTargetButtonSize,
         LocalAppBrandStyle provides BrandStyle,
-        LocalAppIdentity provides AppIdentity(R.drawable.ic_app_header, stringResource(R.string.app_name))
+        LocalAppIdentity provides AppIdentity(R.drawable.ic_app_header, stringResource(R.string.app_name), appVersion)
     ) {
         AppTheme(
             colorScheme = if (darkTheme) AppColors.dark else AppColors.light,
