@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -35,6 +36,7 @@ import se.kodhast.dagboken.core.engine.WeekSummary
 import se.kodhast.dagboken.core.engine.boostEnd
 import se.kodhast.dagboken.core.engine.boostFor
 import se.kodhast.dagboken.core.engine.groupedByLogged
+import se.kodhast.dagboken.core.engine.isDone
 import se.kodhast.dagboken.core.engine.isScheduled
 import se.kodhast.dagboken.core.engine.isScheduledPrescription
 import se.kodhast.dagboken.core.engine.latest
@@ -83,6 +85,8 @@ import se.kodhast.ui.components.ChipRow
 import se.kodhast.ui.components.ConfirmDialog
 import se.kodhast.ui.components.DateStrip
 import se.kodhast.ui.components.DeleteConfirmDialog
+import se.kodhast.ui.components.DepartingExit
+import se.kodhast.ui.components.DepartingItems
 import se.kodhast.ui.components.EmptyState
 import se.kodhast.ui.components.EntityDetailScreen
 import se.kodhast.ui.components.GroupLabel
@@ -96,6 +100,7 @@ import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.components.StatPill
 import se.kodhast.ui.components.UndoRequest
 import se.kodhast.ui.components.UndoSnackbar
+import se.kodhast.ui.components.nod
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 
@@ -344,6 +349,7 @@ private fun IllnessCard(illness: OngoingIllness, expanded: Boolean, onToggle: ()
 private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, expanded: Boolean, onToggle: () -> Unit) {
     var skipping by remember { mutableStateOf<Dose?>(null) }
     var deleting by remember { mutableStateOf<Dose?>(null) }
+    var departures by remember { mutableIntStateOf(0) }
     val list = content.checklist
     AppCard {
         val doses = content.doseProgress
@@ -362,8 +368,16 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
             if (content.dosesOffline) {
                 NoticeBanner(stringResource(R.string.today_medicines_offline_saving), R.drawable.ic_info, null, tone = Tone.Neutral)
             }
-            // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras.
-            rows.forEach { row -> key(row.dose.id) { DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) } }
+            // Radens tillstånd (meny, anteckning, krysset) följer dosen när listan ändras. MED-17: en dos som just bockats av står
+            // kvar avbockad en stund och glider sedan åt höger till de tagna; "Visa tagna" nickar när den är borta. En rad som
+            // döljs med knappen (redan tagen) försvinner direkt.
+            DepartingItems(
+                rows,
+                key = { it.dose.id },
+                departed = { old -> if (old.dose.isDone) null else list.done.firstOrNull { it.id == old.dose.id }?.let { OpenDose(it, null) } },
+                exit = DepartingExit.SlideAway,
+                onDeparted = { departures++ }
+            ) { row -> DoseRow(row, content, onEvent, onSkip = { skipping = it }, onDelete = { deleting = it }) }
             when {
                 // HEM-10, MED-4: doser kunde inte skapas – också när några finns; aldrig "Allt avklarat". Orsaken visas, och när det görs om.
                 content.missingCause != null -> {
@@ -405,7 +419,7 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
                     }
                     if (list.done.isNotEmpty()) {
                         val label = if (content.showDone) stringResource(R.string.today_hide_done) else stringResource(R.string.today_show_done_format, list.done.size)
-                        AppButton(label, { onEvent(TodayEvent.ToggleDone) }, variant = ButtonVariant.Text, compact = true)
+                        AppButton(label, { onEvent(TodayEvent.ToggleDone) }, Modifier.nod(departures), variant = ButtonVariant.Text, compact = true)
                     }
                 }
             }

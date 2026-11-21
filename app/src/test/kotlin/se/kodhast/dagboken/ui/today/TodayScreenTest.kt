@@ -15,6 +15,7 @@ import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -274,6 +275,51 @@ class TodayScreenTest {
         rule.onNodeWithText("Visa tagna (2)").performClick()
         rule.onNodeWithText("Visa kommande (2)").performClick()
         assertEquals(listOf<TodayEvent>(TodayEvent.ToggleDone, TodayEvent.ToggleUpcoming), events)
+    }
+
+    /** Idag med tagna dolda, där SetTaken bockar av och ångrar i innehållet som ViewModeln gör (MED-17). */
+    private fun showTaking(): MutableList<TodayEvent> {
+        val events = mutableListOf<TodayEvent>()
+        var current by mutableStateOf(doses)
+        rule.setContent {
+            DagbokenTheme {
+                TodayScreen(DetailUiState.Content(content(current, showDone = false)), { event ->
+                    events += event
+                    if (event is TodayEvent.SetTaken) {
+                        val status = if (event.taken) DoseStatus.TAKEN else DoseStatus.PLANNED
+                        current = current.map { if (it.id == event.dose.id) it.copy(status = status, takenAt = if (event.taken) at(10, 2) else null) else it }
+                    }
+                }, {})
+            }
+        }
+        return events
+    }
+
+    @Test
+    fun `en avbockad dos står kvar avbockad en stund, glider sedan undan till de tagna (MED-17)`() {
+        rule.mainClock.autoAdvance = false
+        showTaking()
+        rule.onNodeWithText("Visa tagna (2)").assertIsDisplayed()
+        rule.onNodeWithText("D-vitamin 20 µg").performClick()
+        rule.mainClock.advanceTimeBy(300)
+        rule.onNodeWithText("D-vitamin 20 µg").assertIsDisplayed().assertIsOn()
+        rule.onNodeWithText("Visa tagna (3)").assertIsDisplayed()
+        rule.mainClock.advanceTimeBy(3_000)
+        rule.onNodeWithText("D-vitamin 20 µg").assertDoesNotExist()
+        rule.onNodeWithText("Visa tagna (3)").assertIsDisplayed()
+    }
+
+    @Test
+    fun `ett tryck till under pausen ångrar och raden stannar (MED-17)`() {
+        rule.mainClock.autoAdvance = false
+        val events = showTaking()
+        rule.onNodeWithText("D-vitamin 20 µg").performClick()
+        rule.mainClock.advanceTimeBy(300)
+        rule.onNodeWithText("D-vitamin 20 µg").performClick()
+        assertEquals(false, (events.last() as TodayEvent.SetTaken).taken)
+        rule.mainClock.advanceTimeBy(3_000)
+        rule.onNodeWithText("D-vitamin 20 µg").assertIsDisplayed().assertIsOff()
+        rule.onNodeWithText("Visa tagna (2)").assertIsDisplayed()
     }
 
     @Test
