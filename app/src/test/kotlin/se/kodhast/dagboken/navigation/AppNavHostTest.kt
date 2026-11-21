@@ -31,7 +31,7 @@ import se.kodhast.dagboken.testing.captureScreenLightAndDark
 import se.kodhast.dagboken.testing.clickWithoutRipple
 import se.kodhast.dagboken.ui.common.AppErrors
 import se.kodhast.dagboken.ui.components.LogChoice
-import se.kodhast.dagboken.ui.components.UserAvatar
+import se.kodhast.dagboken.ui.components.UserMenu
 import se.kodhast.dagboken.ui.sync.SyncEvent
 import se.kodhast.dagboken.ui.theme.DagbokenTheme
 import se.kodhast.ui.common.DetailUiState
@@ -171,7 +171,7 @@ class AppNavHostTest {
                     backStack,
                     { key -> NavEntry(key) { EntityDetailScreen(DetailUiState.Content(Unit), header = null, onBack = null, title = "Idag") {} } },
                     sync = sync,
-                    account = { UserAvatar(AuthUser("uid-anna", "Anna Berg"), { opened++ }, online = sync.online) }
+                    account = { UserMenu(AuthUser("uid-anna", "Anna Berg"), { opened++ }, {}, {}, online = sync.online) }
                 )
             }
         }
@@ -184,6 +184,7 @@ class AppNavHostTest {
         rule.onNodeWithContentDescription(ACCOUNT)
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Ansluten"))
             .performClick()
+        rule.onNodeWithText("Inställningar").performClick()
         assertEquals(1, opened)
 
         sync = SyncUiState(online = true)

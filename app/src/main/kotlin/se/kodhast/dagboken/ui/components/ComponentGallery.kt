@@ -183,8 +183,7 @@ fun ComponentGallery(onBack: () -> Unit, modifier: Modifier = Modifier) {
         appSections = listOf(
             GallerySection("Poster, reglage och kalender") { Diary() },
             GallerySection("Idag och konto") { Today() },
-            GallerySection("Diagram") { Diagrams() },
-            GallerySection("Inställningsarket") { AccountSheetDemo() }
+            GallerySection("Diagram") { Diagrams() }
         )
     )
 }
@@ -414,11 +413,11 @@ private fun Today() {
     Label("DayDoneCard")
     DayDoneCard(6.8, 0.5, 12, play = celebrate, onConfettiFinished = { celebrate = false })
     AppButton("Fira igen", { celebrate = true }, variant = ButtonVariant.Text)
-    Label("UserAvatar · ansluten, utan anslutning, utloggad")
+    Label("UserMenu · ansluten, utan anslutning, utloggad – tryck för menyn")
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-        UserAvatar(GALLERY_ACCOUNT, {}, online = true)
-        UserAvatar(GALLERY_ACCOUNT, {}, online = false)
-        UserAvatar(null, {})
+        UserMenu(GALLERY_ACCOUNT, {}, {}, {}, online = true, onOpenGallery = {})
+        UserMenu(GALLERY_ACCOUNT, {}, {}, {}, online = false)
+        UserMenu(null, {}, {}, {})
     }
 }
 
@@ -607,16 +606,6 @@ internal val GALLERY_FEELING_POST = Screening(
 )
 
 internal val GALLERY_FEELINGS = listOf(Feeling("calm", "grateful"), Feeling("scared", "anxious", "tense"), Feeling("glad"))
-
-/** Inställningsarket (NAV-9) bakom en knapp, med påhittat konto. */
-@Composable
-private fun AccountSheetDemo() {
-    var open by remember { mutableStateOf(false) }
-    AppButton("Inställningsark", { open = true }, variant = ButtonVariant.Secondary)
-    if (open) {
-        AccountSheet(onDismiss = { open = false }, onSignOut = { open = false }, onOpenGallery = { open = false }, account = GALLERY_ACCOUNT, onOpen = { open = false })
-    }
-}
 
 /** Aktivitetstyperna i galleriet: två stjärnmärkta som chips, resten under "Fler typer" med Övrigt sist. */
 private val GALLERY_TYPES = TypeChoices(
