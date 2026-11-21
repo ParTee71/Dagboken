@@ -24,10 +24,11 @@ import se.kodhast.ui.common.EditorEvents
 import se.kodhast.ui.common.EditorState
 import se.kodhast.ui.common.EditorUiState
 import se.kodhast.ui.common.Validator
+import se.kodhast.ui.components.AppSegmentedChoice
 import se.kodhast.ui.components.AppTextField
-import se.kodhast.ui.components.ChoiceChips
 import se.kodhast.ui.components.EntityEditScreen
 import se.kodhast.ui.components.LabeledGroup
+import se.kodhast.ui.components.SegmentWidth
 
 /** Profilformuläret: födelseåret som det skrivs (tomt = inte angivet) och kön (HLS-11). */
 data class ProfileForm(val birthYear: String = "", val sex: Sex = Sex.UNSPECIFIED) {
@@ -122,7 +123,12 @@ fun ProfileScreen(state: EditorUiState<ProfileForm>, events: EditorEvents, onEve
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
         LabeledGroup(stringResource(R.string.profile_sex)) {
-            ChoiceChips(SEXES, state.value.sex, { onEvent(ProfileEvent.SexChanged(it)) }, label = { stringResource(it.label()) })
+            AppSegmentedChoice(
+                SEXES.map { stringResource(it.label()) },
+                SEXES.indexOf(state.value.sex),
+                { onEvent(ProfileEvent.SexChanged(SEXES[it])) },
+                segmentWidth = SegmentWidth.FitText
+            )
         }
     }
 }
