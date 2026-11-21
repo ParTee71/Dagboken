@@ -34,6 +34,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
@@ -703,6 +704,23 @@ class TodayScreenTest {
         assertEquals(emptyList(), events, "inget raderas utan bekräftelse")
         rule.onNodeWithText("Radera").performClick()
         assertEquals(listOf<TodayEvent>(TodayEvent.Delete(prn)), events)
+    }
+
+    @Test
+    fun `svep åt vänster på en raderbar dos frågar först, en schemalagd dos har inget svep (NFR-17, MED-3)`() {
+        val events = mutableListOf<TodayEvent>()
+        show(content(doses + prn), onEvent = { events += it })
+        rule.onNodeWithText("Ipren 400 mg").performScrollTo().performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+        rule.onNodeWithText("Dosen Ipren 400 mg, 4 okt kl. 09:00 raderas med sin anteckning. Det går inte att ångra.").assertIsDisplayed()
+        assertEquals(emptyList(), events, "svepet raderar inget utan bekräftelse")
+        rule.onAllNodesWithText("Radera").onLast().performClick()
+        assertEquals(listOf<TodayEvent>(TodayEvent.Delete(prn)), events)
+
+        rule.onNodeWithText("Levaxin 100 µg").performScrollTo().performTouchInput { swipeLeft() }
+        rule.waitForIdle()
+        rule.onNodeWithText("Avbryt").assertDoesNotExist()
+        assertEquals(1, events.filterIsInstance<TodayEvent.Delete>().size, "en receptdos i schemat raderas aldrig med svep")
     }
 
     @Test

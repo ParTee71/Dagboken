@@ -1,5 +1,6 @@
 package se.kodhast.dagboken.ui.today
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -98,9 +100,11 @@ import se.kodhast.ui.components.SectionCard
 import se.kodhast.ui.components.SectionFoldout
 import se.kodhast.ui.components.SectionHeader
 import se.kodhast.ui.components.StatPill
+import se.kodhast.ui.components.SwipeToDelete
 import se.kodhast.ui.components.UndoRequest
 import se.kodhast.ui.components.UndoSnackbar
 import se.kodhast.ui.components.nod
+import se.kodhast.ui.theme.AppTheme
 import se.kodhast.ui.theme.Spacing
 import se.kodhast.ui.theme.Tone
 
@@ -452,38 +456,48 @@ private fun MedicinesCard(content: TodayContent, onEvent: (TodayEvent) -> Unit, 
 /**
  * En dos: tidpunkt, klockslag eller tagningstid och dagens höjning (REC-12) som undertext; "Försenat"/"Snart" (MED-13).
  * Menyn: "Hoppa över" på en planerad receptdos i schemat, "Radera" på en vid behov-, extra- eller engångsdos (MED-3) –
- * med samma text som `DoseRepository.remove` gör (en migrerad receptdos hoppas över, MED-15).
+ * med samma text som `DoseRepository.remove` gör (en migrerad receptdos hoppas över, MED-15). En rad som går att radera
+ * har också svep åt vänster (NFR-17, android-ui #118): raden fjädrar tillbaka och samma dialog som menyns Radera frågar.
  */
 @Composable
 private fun DoseRow(item: OpenDose, content: TodayContent, onEvent: (TodayEvent) -> Unit, onSkip: (Dose) -> Unit, onDelete: (Dose) -> Unit) {
     val dose = item.dose
     val skip = stringResource(R.string.today_skip)
     val delete = stringResource(R.string.delete)
-    CheckRow(
-        title = dose.title(),
-        checked = dose.status == DoseStatus.TAKEN,
-        onCheckedChange = { onEvent(TodayEvent.SetTaken(dose, it)) },
-        subtitle = doseSubtitle(dose, item.time, dose.prescriptionId?.let(content.prescriptions::get), content.date, content.zone),
-        below = when (item.due) {
-            Due.LATE -> ({ InfoPill(stringResource(R.string.occasion_late), tone = Tone.Warning) })
-            Due.SOON -> ({ InfoPill(stringResource(R.string.occasion_soon), tone = Tone.Sun) })
-            else -> null
-        },
-        note = dose.note.orEmpty(),
-        // En loggad vid behov- eller extrados visas som tagen men växlas inte – den raderas i menyn (eller ångras).
-        enabled = dose.isScheduled,
-        menu = when {
-            // MED-3: en receptdos i schemat hoppas över; allt annat – vid behov, extrados, engångsdos – raderas.
-            // HEM-10: en beräknad dos finns inte som dokument än – ingen meny förrän den skapats.
-            dose.id in content.projectedIds -> emptyList()
-
-            !dose.isScheduledPrescription -> listOf(AppMenuItem(delete, { onDelete(dose) }, R.drawable.ic_delete, destructive = true))
-
-            dose.status == DoseStatus.PLANNED -> listOf(AppMenuItem(skip, { onSkip(dose) }, R.drawable.ic_close))
-
-            else -> emptyList()
+    // MED-3: en receptdos i schemat hoppas över; allt annat – vid behov, extrados, engångsdos – raderas.
+    // HEM-10: en beräknad dos finns inte som dokument än – ingen meny förrän den skapats.
+    val deletable = dose.id !in content.projectedIds && !dose.isScheduledPrescription
+    val row = @Composable { modifier: Modifier ->
+        CheckRow(
+            modifier = modifier,
+            title = dose.title(),
+            checked = dose.status == DoseStatus.TAKEN,
+            onCheckedChange = { onEvent(TodayEvent.SetTaken(dose, it)) },
+            subtitle = doseSubtitle(dose, item.time, dose.prescriptionId?.let(content.prescriptions::get), content.date, content.zone),
+            below = when (item.due) {
+                Due.LATE -> ({ InfoPill(stringResource(R.string.occasion_late), tone = Tone.Warning) })
+                Due.SOON -> ({ InfoPill(stringResource(R.string.occasion_soon), tone = Tone.Sun) })
+                else -> null
+            },
+            note = dose.note.orEmpty(),
+            // En loggad vid behov- eller extrados visas som tagen men växlas inte – den raderas i menyn (eller ångras).
+            enabled = dose.isScheduled,
+            menu = when {
+                dose.id in content.projectedIds -> emptyList()
+                deletable -> listOf(AppMenuItem(delete, { onDelete(dose) }, R.drawable.ic_delete, destructive = true))
+                dose.status == DoseStatus.PLANNED -> listOf(AppMenuItem(skip, { onSkip(dose) }, R.drawable.ic_close))
+                else -> emptyList()
+            }
+        )
+    }
+    if (!deletable) {
+        row(Modifier)
+    } else {
+        SwipeToDelete({ onDelete(dose) }, shape = AppTheme.shapes.row) {
+            // Ogenomskinlig, så att svepets bakgrund bara syns där raden dragits undan.
+            row(Modifier.clip(AppTheme.shapes.row).background(AppTheme.extendedColors.card))
         }
-    )
+    }
 }
 
 /**
