@@ -94,13 +94,13 @@ class TodayScreenshotTest {
     }
 
     @Test
-    fun `UserAvatar - ansluten, utan anslutning och utloggad (NAV-12)`() {
-        captureLightAndDark("UserAvatar_lagen") {
+    fun `UserMenu - ansluten, utan anslutning och utloggad (NAV-12)`() {
+        captureLightAndDark("UserMenu_lagen") {
             Sheet {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s)) {
-                    UserAvatar(AuthUser("uid-anna", "Anna Berg"), {}, online = true)
-                    UserAvatar(AuthUser("uid-anna", "Anna Berg"), {}, online = false)
-                    UserAvatar(null, {})
+                    UserMenu(AuthUser("uid-anna", "Anna Berg"), {}, {}, {}, online = true)
+                    UserMenu(AuthUser("uid-anna", "Anna Berg"), {}, {}, {}, online = false)
+                    UserMenu(null, {}, {}, {})
                 }
             }
         }

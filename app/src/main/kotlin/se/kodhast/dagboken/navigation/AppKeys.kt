@@ -30,11 +30,15 @@ data object TrendsKey : TopLevelKey
 @Serializable
 data object MedicinesKey : TopLevelKey
 
-/** Komponentgalleriet – nås bara från inställningsarket i debug-bygget. */
+/** Komponentgalleriet – nås bara från avatarmenyn i debug-bygget (NAV-9). */
 @Serializable
 data object ComponentGalleryKey : AppKey
 
-// Inställningsarkets underskärmar (NAV-9) – läggs på den aktuella flikens stack.
+/** Inställningar: raderna till inställningarnas underskärmar (NAV-9) – öppnas från avatarmenyn. */
+@Serializable
+data object SettingsKey : AppKey
+
+// Inställningarnas underskärmar och Om Dagboken (NAV-9) – läggs på den aktuella flikens stack.
 
 /** Profil: födelseår och kön (HLS-11). */
 @Serializable

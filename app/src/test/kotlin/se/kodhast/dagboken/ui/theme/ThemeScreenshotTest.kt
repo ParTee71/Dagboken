@@ -22,7 +22,7 @@ import se.kodhast.dagboken.navigation.AppNavHost
 import se.kodhast.dagboken.testing.captureLightAndDark
 import se.kodhast.dagboken.ui.AppRootContent
 import se.kodhast.dagboken.ui.auth.AuthUiState
-import se.kodhast.dagboken.ui.components.UserAvatar
+import se.kodhast.dagboken.ui.components.UserMenu
 import se.kodhast.ui.common.AuthGate
 import se.kodhast.ui.components.AppHeader
 import se.kodhast.ui.components.EmptyState
@@ -36,7 +36,7 @@ class ThemeScreenshotTest {
     fun `startskärmen i ljust och mörkt tema`() {
         captureLightAndDark("AppRoot_start") {
             AppRootContent(AuthUiState(AuthGate.Ready), {}) {
-                AppNavHost(AppBackStack(), { key -> NavEntry(key) { StartScreen() } }, onLog = {}, account = { UserAvatar(null, {}) })
+                AppNavHost(AppBackStack(), { key -> NavEntry(key) { StartScreen() } }, onLog = {}, account = { UserMenu(null, {}, {}, {}) })
             }
         }
     }

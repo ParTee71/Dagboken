@@ -3,13 +3,9 @@ package se.kodhast.dagboken.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
@@ -20,11 +16,10 @@ import se.kodhast.dagboken.R
 import se.kodhast.dagboken.core.engine.DiaryEntry
 import se.kodhast.dagboken.data.auth.AuthUser
 import se.kodhast.dagboken.reminders.ReminderLaunch
-import se.kodhast.dagboken.ui.components.AccountSheet
 import se.kodhast.dagboken.ui.components.ComponentGallery
 import se.kodhast.dagboken.ui.components.LogChoice
 import se.kodhast.dagboken.ui.components.SettingsPage
-import se.kodhast.dagboken.ui.components.UserAvatar
+import se.kodhast.dagboken.ui.components.UserMenu
 import se.kodhast.dagboken.ui.diary.DiaryRoute
 import se.kodhast.dagboken.ui.illness.IllnessDetailRoute
 import se.kodhast.dagboken.ui.log.ActivityEditRoute
@@ -46,18 +41,16 @@ import se.kodhast.dagboken.ui.settings.ListsRoute
 import se.kodhast.dagboken.ui.settings.OptionEditRoute
 import se.kodhast.dagboken.ui.settings.ProfileRoute
 import se.kodhast.dagboken.ui.settings.RemindersRoute
+import se.kodhast.dagboken.ui.settings.SettingsScreen
 import se.kodhast.dagboken.ui.settings.ThemeRoute
 import se.kodhast.dagboken.ui.sync.SyncViewModel
 import se.kodhast.dagboken.ui.today.TodayRoute
 import se.kodhast.dagboken.ui.trends.TrendsRoute
 
-/** Arket som ligger över flikarna: inställningsarket bakom avataren (NAV-9). Loggmenyn är plusknappens FAB-meny i bottenraden (NAV-10). */
-enum class RootSheet { Account }
-
 /**
  * Appens innehåll efter inloggning: fyra flikar med egna back stackar (NAV-8, NAV-11), synkläget
- * (NFR-22), inställningsarket bakom avataren i flikarnas sidhuvud (NAV-9, NAV-12, med anslutningspluppen) och
- * plusknappens loggmeny (NAV-10). [account] är den inloggade (namn, e-post och foto i avataren och arket, AUTH-3); [onSignOut] loggar ut. [launch]
+ * (NFR-22), avatarmenyn i flikarnas sidhuvud (NAV-9, NAV-12, med anslutningspluppen) och
+ * plusknappens loggmeny (NAV-10). [account] är den inloggade (namn, e-post och foto i avataren och menyn, AUTH-3); [onSignOut] loggar ut. [launch]
  * är vad en tryckt påminnelse ska öppna ([open]); när det är gjort anropas [onLaunchHandled].
  */
 @Composable
@@ -72,14 +65,7 @@ fun AppNavigation(
 ) {
     val sync by syncViewModel.state.collectAsStateWithLifecycle()
     val backStack = rememberAppBackStack()
-    var sheet by rememberSaveable { mutableStateOf<RootSheet?>(null) }
-    val entries = remember(backStack) {
-        appEntries(
-            backStack,
-            onScreening = logViewModel::onEvent,
-            onSettingsClosed = { sheet = RootSheet.Account }
-        )
-    }
+    val entries = remember(backStack) { appEntries(backStack, onScreening = logViewModel::onEvent) }
     AppNavHost(
         backStack,
         entries,
@@ -87,24 +73,24 @@ fun AppNavigation(
         sync = sync,
         onSyncEvent = syncViewModel::onEvent,
         onLog = { choice -> backStack.log(choice, logViewModel.logDay(onToday = backStack.currentTab == TodayKey), logViewModel::onEvent) },
-        // NAV-9: systemets tillbaka från en underskärm i inställningsarket öppnar arket igen, som pilen.
-        onPopped = { key -> if (key.isSettingsPage) sheet = RootSheet.Account },
         // Samma lambda tills kontot eller anslutningen ändras, så att flikarnas sidhuvud inte ritas om i onödan.
-        account = remember(account, sync.online) { { UserAvatar(account, onClick = { sheet = RootSheet.Account }, online = sync.online) } }
-    )
-    RootSheets(
-        sheet,
-        onDismiss = { sheet = null },
-        onSignOut = onSignOut,
-        onOpenGallery = if (BuildConfig.DEBUG) ({ backStack.push(ComponentGalleryKey) }) else null,
-        account = account,
-        onOpen = { page -> backStack.push(page.key) }
+        account = remember(account, sync.online, onSignOut) {
+            {
+                UserMenu(
+                    account,
+                    onOpenSettings = { backStack.push(SettingsKey) },
+                    onOpenAbout = { backStack.push(AboutKey) },
+                    onSignOut = onSignOut,
+                    online = sync.online,
+                    onOpenGallery = if (BuildConfig.DEBUG) ({ backStack.push(ComponentGalleryKey) }) else null
+                )
+            }
+        }
     )
     LogSheets(logViewModel, onOpen = { target -> backStack.push(target.key) })
     val launchHandled by rememberUpdatedState(onLaunchHandled)
     LaunchedEffect(launch) {
         val target = launch ?: return@LaunchedEffect
-        sheet = null
         backStack.open(target, logViewModel::onEvent)
         launchHandled()
     }
@@ -152,7 +138,7 @@ fun AppBackStack.log(choice: LogChoice, date: LocalDate?, onEvent: (LogEvent) ->
     }
 }
 
-/** Underskärmen som en rad i inställningsarket öppnar (NAV-9). */
+/** Underskärmen som en rad i Inställningar öppnar (NAV-9). */
 val SettingsPage.key: AppKey
     get() = when (this) {
         SettingsPage.Profile -> ProfileKey
@@ -160,58 +146,17 @@ val SettingsPage.key: AppKey
         SettingsPage.Theme -> ThemeKey
         SettingsPage.Lists -> ListsKey
         SettingsPage.ExportImport -> ExportImportKey
-        SettingsPage.About -> AboutKey
     }
-
-/** Om [this] är en underskärm som en rad i inställningsarket öppnar – tillbaka därifrån öppnar arket igen (NAV-9). */
-val AppKey.isSettingsPage: Boolean
-    get() = SettingsPage.entries.any { it.key == this }
-
-/**
- * Det ark som är öppet; varje val stänger arket först. [onOpen] öppnar en underskärm på den aktuella fliken.
- */
-@Composable
-fun RootSheets(
-    sheet: RootSheet?,
-    onDismiss: () -> Unit,
-    onSignOut: () -> Unit,
-    onOpenGallery: (() -> Unit)?,
-    account: AuthUser? = null,
-    onOpen: (SettingsPage) -> Unit = {}
-) {
-    /** Arket stängs först, sedan görs valet. */
-    fun dismissThen(action: () -> Unit): () -> Unit = {
-        onDismiss()
-        action()
-    }
-
-    fun <A> dismissThen(action: (A) -> Unit): (A) -> Unit = { argument ->
-        onDismiss()
-        action(argument)
-    }
-    when (sheet) {
-        RootSheet.Account -> AccountSheet(
-            onDismiss = onDismiss,
-            onSignOut = dismissThen(onSignOut),
-            onOpenGallery = onOpenGallery?.let(::dismissThen),
-            account = account,
-            onOpen = dismissThen(onOpen)
-        )
-
-        null -> Unit
-    }
-}
 
 /**
  * Vilken skärm varje nyckel visar – varje nyckel har en (`AppNavigationTest`). [onScreening] öppnar måendearket ovanpå flikarna – från Idag och
  * från en måendepost i Dagbok – ett enda ark (`LogViewModel`), och dosvalet från Mediciner (MEDF-6). En skärm stänger sig med `popIfTop(key)`, aldrig `pop()`, så att ett
- * andra tryck inte stänger skärmen under. Inställningsarkets underskärmar läggs på den aktuella
- * flikens stack, och när de stängs anropas [onSettingsClosed] (arket öppnas igen, NAV-9).
+ * andra tryck inte stänger skärmen under. Inställningar, dess underskärmar och Om Dagboken läggs på den aktuella
+ * flikens stack, så att tillbaka från en underskärm går till Inställningar (NAV-9).
  */
 fun appEntries(
     backStack: AppBackStack,
-    onScreening: (LogEvent) -> Unit = {},
-    onSettingsClosed: () -> Unit = {}
+    onScreening: (LogEvent) -> Unit = {}
 ): (AppKey) -> NavEntry<AppKey> = // Varje nyckel har sin skärm (AppKey är förseglad); en saknad är ett programfel.
     entryProvider(fallback = { key -> error("Ingen skärm för $key") }) {
         entry<TodayKey> {
@@ -259,17 +204,18 @@ fun appEntries(
         entry<PrescriptionEditKey> { key -> PrescriptionEditRoute(key.id, key.extend, onClose = backStack.closer(key)) }
         entry<PrnMedicineEditKey> { key -> PrnMedicineEditRoute(key.id, onClose = backStack.closer(key)) }
         entry<ComponentGalleryKey> { key -> ComponentGallery(onBack = backStack.closer(key)) }
-        entry<ProfileKey> { key -> ProfileRoute(onClose = backStack.closer(key, onSettingsClosed)) }
-        entry<RemindersKey> { key -> RemindersRoute(onClose = backStack.closer(key, onSettingsClosed)) }
-        entry<ThemeKey> { key -> ThemeRoute(onBack = backStack.closer(key, onSettingsClosed)) }
+        entry<SettingsKey> { key -> SettingsScreen(onBack = backStack.closer(key), onOpen = { page -> backStack.push(page.key) }) }
+        entry<ProfileKey> { key -> ProfileRoute(onClose = backStack.closer(key)) }
+        entry<RemindersKey> { key -> RemindersRoute(onClose = backStack.closer(key)) }
+        entry<ThemeKey> { key -> ThemeRoute(onBack = backStack.closer(key)) }
         entry<ListsKey> { key ->
             ListsRoute(
-                onBack = backStack.closer(key, onSettingsClosed),
+                onBack = backStack.closer(key),
                 onAdd = { kind -> backStack.push(OptionEditKey(kind)) },
                 onOpen = { option -> backStack.push(OptionEditKey(option.kind, option.id)) }
             )
         }
         entry<OptionEditKey> { key -> OptionEditRoute(key.kind, key.id, onClose = backStack.closer(key)) }
-        entry<ExportImportKey> { key -> ExportImportRoute(onBack = backStack.closer(key, onSettingsClosed)) }
-        entry<AboutKey> { key -> AboutRoute(onBack = backStack.closer(key, onSettingsClosed)) }
+        entry<ExportImportKey> { key -> ExportImportRoute(onBack = backStack.closer(key)) }
+        entry<AboutKey> { key -> AboutRoute(onBack = backStack.closer(key)) }
     }

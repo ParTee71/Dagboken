@@ -37,6 +37,7 @@ class AppNavigationTest {
         ExportImportKey,
         AboutKey,
         PrescriptionEditKey(),
+        SettingsKey,
         PrescriptionEditKey("6f1c2a9e"),
         PrescriptionEditKey("6f1c2a9e", extend = true),
         PrnMedicineEditKey(),
@@ -61,28 +62,28 @@ class AppNavigationTest {
         // Uttömmande: en ny nyckeltyp utan gren här ger ett kompileringsfel.
         when (key) {
             TodayKey, DiaryKey, TrendsKey, MedicinesKey, ComponentGalleryKey -> Unit
-            ProfileKey, RemindersKey, ThemeKey, ListsKey, is OptionEditKey, ExportImportKey, AboutKey -> Unit
+            SettingsKey, ProfileKey, RemindersKey, ThemeKey, ListsKey, is OptionEditKey, ExportImportKey, AboutKey -> Unit
             is PrescriptionEditKey, is PrnMedicineEditKey, is EpisodeKey, is EpisodeEditKey -> Unit
             is ActivityEditKey, is EventEditKey, is DoseEditKey, is EpisodeNewKey, is CheckinEditKey -> Unit
         }
     }
 
     @Test
-    fun `varje rad i inställningsarket öppnar sin underskärm på den aktuella fliken (NAV-9)`() {
+    fun `varje rad i Inställningar öppnar sin underskärm på den aktuella fliken (NAV-9)`() {
         assertEquals(
-            listOf(ProfileKey, RemindersKey, ThemeKey, ListsKey, ExportImportKey, AboutKey),
+            listOf(ProfileKey, RemindersKey, ThemeKey, ListsKey, ExportImportKey),
             SettingsPage.entries.map { it.key }
         )
         val backStack = AppBackStack()
         backStack.select(TrendsKey)
+        backStack.push(SettingsKey)
         backStack.push(SettingsPage.Lists.key)
         backStack.push(OptionEditKey(OptionKind.EVENT))
-        assertEquals(listOf(TodayKey, TrendsKey, ListsKey, OptionEditKey(OptionKind.EVENT)), backStack.entries)
-    }
-
-    @Test
-    fun `tillbaka från arkets underskärmar öppnar arket igen, inte från skärmarna under dem (NAV-9)`() {
-        assertEquals(SettingsPage.entries.map { it.key }, keys.filter { it.isSettingsPage })
+        assertEquals(listOf(TodayKey, TrendsKey, SettingsKey, ListsKey, OptionEditKey(OptionKind.EVENT)), backStack.entries)
+        // Tillbaka från underskärmen går till Inställningar, inte till fliken.
+        backStack.pop()
+        backStack.pop()
+        assertEquals(listOf(TodayKey, TrendsKey, SettingsKey), backStack.entries)
     }
 
     @Test

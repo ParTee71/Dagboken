@@ -28,7 +28,6 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -248,13 +247,13 @@ class TodayComponentsTest {
         assertEquals(2, finished)
     }
 
-    // ---- UserAvatar (android-ui:s AccountAvatar med kontots namn och foto) ----
+    // ---- UserMenu (android-ui:s AccountMenuAvatar med kontots namn och foto) ----
 
     @Test
     fun `avataren är en 48 dp knapp som läses Konto och inställningar, med anslutningsläget (NAV-9, NAV-12)`() {
         var opened = 0
         var online by mutableStateOf(true)
-        show { UserAvatar(AuthUser("uid-anna", "Anna Berg"), { opened++ }, online = online) }
+        show { UserMenu(AuthUser("uid-anna", "Anna Berg"), { opened++ }, {}, {}, online = online) }
         rule.onNodeWithContentDescription("Konto och inställningar")
             .assert(role(Role.Button))
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Ansluten"))
@@ -262,6 +261,7 @@ class TodayComponentsTest {
             .assertHeightIsAtLeast(48.dp)
             .assertWidthIsAtLeast(48.dp)
             .performClick()
+        rule.onNodeWithText("Inställningar").performClick()
         assertEquals(1, opened)
         online = false
         rule.onNodeWithContentDescription("Konto och inställningar")
@@ -284,7 +284,7 @@ class TodayComponentsTest {
             }.build()
         )
         try {
-            show { UserAvatar(AuthUser("uid-anna", "Anna Berg", photoUrl = "https://exempel.se/anna.jpg"), {}) }
+            show { UserMenu(AuthUser("uid-anna", "Anna Berg", photoUrl = "https://exempel.se/anna.jpg"), {}, {}, {}) }
             rule.waitUntil(WAIT_MILLIS) { synchronized(requests) { requests.isNotEmpty() } }
             rule.waitForIdle()
             val request = synchronized(requests) { requests.single() }
@@ -294,13 +294,6 @@ class TodayComponentsTest {
         } finally {
             SingletonImageLoader.reset()
         }
-    }
-
-    @Test
-    fun `utan onClick är avataren bara en bild som inte läses upp`() {
-        show { UserAvatar(AuthUser("uid-anna", "Anna Berg"), onClick = null) }
-        rule.onNodeWithContentDescription("Konto och inställningar").assertDoesNotExist()
-        rule.onAllNodes(hasClickAction()).assertCountEquals(0)
     }
 
     private companion object {

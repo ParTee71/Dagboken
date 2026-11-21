@@ -360,7 +360,7 @@ class CatalogScreenshotTest {
                     "Idag",
                     TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
                     subtitle = "God kväll · tisdag 17 november · vecka 47",
-                    account = { UserAvatar(AuthUser("galleri", "Anna Berg"), {}, online = true) }
+                    account = { UserMenu(AuthUser("galleri", "Anna Berg"), {}, {}, {}, online = true) }
                 )
             }
         }
@@ -372,7 +372,7 @@ class CatalogScreenshotTest {
                         "Idag",
                         TopAppBarDefaults.exitUntilCollapsedScrollBehavior(),
                         subtitle = "God kväll · tisdag 17 november · vecka 47",
-                        account = { UserAvatar(AuthUser("galleri", "Anna Berg"), {}, online = true) }
+                        account = { UserMenu(AuthUser("galleri", "Anna Berg"), {}, {}, {}, online = true) }
                     )
                 }
             }
