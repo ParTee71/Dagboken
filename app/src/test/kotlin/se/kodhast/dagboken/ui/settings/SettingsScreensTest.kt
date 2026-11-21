@@ -75,7 +75,7 @@ class SettingsScreensTest {
     }
 
     @Test
-    fun `Profil - könet väljs med chips i ordningen Kvinna, Man, Ej angivet`() {
+    fun `Profil - könet väljs med segmentval i ordningen Kvinna, Man, Ej angivet`() {
         val events = mutableListOf<ProfileEvent>()
         rule.setContent { DagbokenTheme { ProfileScreen(EditorUiState(ProfileForm("1971", Sex.UNSPECIFIED)), EditorEvents.None, { events += it }, {}) } }
         rule.onNodeWithText("Kvinna").performClick()

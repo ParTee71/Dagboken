@@ -264,6 +264,7 @@ Versionen och raden nedan höjs och skrivs i funktions-PR:en; releasen görs via
 
 | Version | Innehåll |
 |---|---|
+| 4.23.0 | **Segmentval efter textens bredd** (android-ui #98): Profilens kön (Kvinna · Man · Ej angivet) väljs med segmentval i stället för chips, och receptets upprepning (Varje dag · Veckodagar · Var X:e dag) får segment efter textens bredd, så att det valda inte klipps på telefonen (HLS-11, REC-2). android-ui 3.9.0 → 3.10.0. |
 | 4.22.0 | **Samma radering överallt** (android-ui #118): en vid behov-, extra- eller engångsdos på Idag raderas också med svep åt vänster – raden fjädrar tillbaka och samma dialog som menyns Radera frågar (NFR-17, MED-3). android-ui 3.8.0 → 3.9.0. |
 | 4.21.0 | **Avatarmenyn** (android-ui #102): avataren i sidhuvudet fäller ut samma meny som i de andra Kodhäst-apparna – kontot, Inställningar, (i debug Komponentgalleri), Om Dagboken och Logga ut – i stället för inställningsarket. Inställningar är en egen skärm med Profil, Påminnelser, Tema, Listor och Export och import; tillbaka från en underskärm går dit (NAV-9). **Avbockningen syns** (#456): en dos som bockas av på Idag står kvar avbockad en kort stund och glider sedan åt höger till de tagna, och "Visa tagna" nickar (MED-17). android-ui 3.6.0 → 3.8.0: dessutom oskärpa bakom dialoger och ark och under sidhuvudet när innehållet rullats in, och tidsväljaren som rullhjul. |
 | 4.20.0 | Versionen står litet efter appnamnet i flikarnas sidhuvud (NAV-12), som i de andra Kodhäst-apparna (android-ui #95). android-ui 3.0.0 → 3.3.0. |

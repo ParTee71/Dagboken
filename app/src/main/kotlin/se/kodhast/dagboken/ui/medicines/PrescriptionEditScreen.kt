@@ -100,6 +100,7 @@ import se.kodhast.ui.components.FieldError
 import se.kodhast.ui.components.LabeledGroup
 import se.kodhast.ui.components.NoteCard
 import se.kodhast.ui.components.QuantityStepper
+import se.kodhast.ui.components.SegmentWidth
 import se.kodhast.ui.components.SwitchRow
 import se.kodhast.ui.theme.Spacing
 
@@ -494,7 +495,7 @@ private fun RepeatSection(p: Prescription, daysError: String?, onEvent: (Prescri
     val choices = RepeatChoice.entries
     val labels = listOf(R.string.prescription_repeat_every_day, R.string.prescription_repeat_weekdays, R.string.prescription_repeat_interval).map { stringResource(it) }
     LabeledGroup(label, helper = helper, error = daysError.takeIf { choice == RepeatChoice.WEEKDAYS }) {
-        AppSegmentedChoice(labels, choices.indexOf(choice), { onEvent(PrescriptionEditEvent.RepeatChosen(choices[it])) })
+        AppSegmentedChoice(labels, choices.indexOf(choice), { onEvent(PrescriptionEditEvent.RepeatChosen(choices[it])) }, segmentWidth = SegmentWidth.FitText)
         when (choice) {
             RepeatChoice.EVERY_DAY -> Unit
 
